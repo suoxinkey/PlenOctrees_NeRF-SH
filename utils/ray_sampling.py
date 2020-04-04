@@ -9,7 +9,7 @@ Sample rays from views (and images) with/without masks
 INPUT Tensors
 Ks: intrinsics of cameras (M,3,3)
 Ts: extrinsic of cameras (M,4,4)
-image_size: the size of image (H,W)
+image_size: the size of image [H,W]
 images: (M,C,H,W)
 mask_threshold: a float threshold to mask rays
 masks:(M,H,W)
@@ -23,6 +23,7 @@ def ray_sampling(Ks, Ts, image_size, masks=None, mask_threshold = 0.5, images=No
     h = image_size[0]
     w = image_size[1]
     M = Ks.size(0)
+
 
     x = torch.linspace(0,h-1,steps=h,device = Ks.device )
     y = torch.linspace(0,w-1,steps=w,device = Ks.device )
