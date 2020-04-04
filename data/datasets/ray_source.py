@@ -35,7 +35,7 @@ class IBRay_NHR(torch.utils.data.Dataset):
             self.rays.append(rays)
             self.rgbs.append(rgbs)
             print(i,'| generate %d rays.'%rays.size(0))
-            if i>10:
+            if i>-1:
                 break
 
         self.rays = torch.cat(self.rays, dim=0)
