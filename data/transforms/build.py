@@ -6,25 +6,25 @@
 
 import torchvision.transforms as T
 
-from .transforms import RandomErasing
+from .random_transforms import Random_Transforms
 
 
-def build_transforms(cfg, is_train=True):
-    normalize_transform = T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD)
-    if is_train:
-        transform = T.Compose([
-            T.RandomResizedCrop(size=cfg.INPUT.SIZE_TRAIN,
-                                scale=(cfg.INPUT.MIN_SCALE_TRAIN, cfg.INPUT.MAX_SCALE_TRAIN)),
-            T.RandomHorizontalFlip(p=cfg.INPUT.PROB),
-            T.ToTensor(),
-            normalize_transform,
-            RandomErasing(probability=cfg.INPUT.PROB, mean=cfg.INPUT.PIXEL_MEAN)
-        ])
+def build_transforms(cfg, is_train=True , is_center = False):
+    normalize_transform = T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+    if is_train and not is_center: 
+
+        transform = Random_Transforms((cfg.INPUT.SIZE_TRAIN[1], cfg.INPUT.SIZE_TRAIN[0]),cfg.DATASETS.SHIFT, cfg.DATASETS.MAXRATION,cfg.DATASETS.ROTATION)
+        #transform = T.Compose([
+        #    T.Resize((cfg.INPUT.SIZE_TRAIN[1], cfg.INPUT.SIZE_TRAIN[0])),
+        #    T.ToTensor()
+        #])
     else:
-        transform = T.Compose([
-            T.Resize(cfg.INPUT.SIZE_TEST),
-            T.ToTensor(),
-            normalize_transform
-        ])
+        transform = Random_Transforms((cfg.INPUT.SIZE_TEST[1], cfg.INPUT.SIZE_TEST[0]),0, isTrain = False, is_center = is_center)
+        #transform = T.Compose([
+        #    T.Resize((cfg.INPUT.SIZE_TEST[1], cfg.INPUT.SIZE_TEST[0])),
+        #    T.ToTensor()
+        #])
+
 
     return transform
