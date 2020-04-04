@@ -2,7 +2,7 @@ import torch
 
 
 
-
+# Positional encoding
 class Trigonometric_kernel:
     def __init__(self, L = 10):
 
@@ -20,9 +20,10 @@ class Trigonometric_kernel:
         self.embed_fns = embed_fns
 
     '''
+    INPUT
      x: input vectors (N,C) 
 
-     OUPUT
+     OUTPUT
 
      pos_kernel: (N, calc_dim(C) )
     '''
