@@ -2,9 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class VolumeRenderer(nn.Module):
     def __init__(self):
         super(VolumeRenderer, self).__init__()
+
         self.sigma2alpha = lambda sigma, delta, act_fn=F.relu: 1.-torch.exp(-act_fn(sigma)*delta)
 
 
@@ -13,7 +15,7 @@ class VolumeRenderer(nn.Module):
         N - num rays; L - num bins; 
         :param depth: torch.tensor, depth for each sample along the ray. [N, L, 1]
         :param rgb: torch.tensor, raw rgb output from the network. [N, L, 3]
-        :param sigma: torch.tensor, density. [N, L, 1]
+        :param sigma: torch.tensor, raw density (without activation). [N, L, 1]
         
         :return:
             color: torch.tensor [N, 3]
@@ -21,11 +23,12 @@ class VolumeRenderer(nn.Module):
         """
 
         delta = (depth[:, 1:] - depth[:, :-1]).squeeze()  # [N, L-1]
-        delta = torch.cat([delta, torch.Tensor([1e10]).expand_as(delta[...,:1])], dim=-1)   # [N, L]
+        pad = torch.Tensor([1e10]).expand_as(delta[...,:1]).to(delta.device)
+        delta = torch.cat([delta, pad], dim=-1)   # [N, L]
 
         if noise > 0.:
             sigma += (torch.normal(size=sigma.size()) * noise)
-        
+
         alpha = self.sigma2alpha(sigma, delta.unsqueeze(-1))
         weights = torch.mul(alpha, torch.cumprod(1.-alpha+1e-10, dim=-1))   #[N, L, 1]
 
@@ -47,8 +50,17 @@ if __name__ == "__main__":
 
     renderer = VolumeRenderer()
 
-    color, depth = renderer(depth, raw, sigma)
-    print('Predicted: ', color.shape, depth.shape)
+    color, dpt = renderer(depth, raw, sigma)
+    print('Predicted [CPU]: ', color.shape, dpt.shape)
+
+    if torch.cuda.is_available():
+        depth = depth.cuda()
+        raw = raw.cuda()
+        sigma = sigma.cuda()
+        renderer = renderer.cuda()
+
+        color, dpt = renderer(depth, raw, sigma)
+        print('Predicted [GPU]: ', color.shape, dpt.shape)
 
 
 ################################## ORIGIONAL IMPLEMENTATION ##################################################
