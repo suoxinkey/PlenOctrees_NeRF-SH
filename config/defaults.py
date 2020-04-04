@@ -25,7 +25,7 @@ _C.MODEL.NUM_CLASSES = 10
 # -----------------------------------------------------------------------------
 _C.INPUT = CN()
 # Size of the image during training
-_C.INPUT.SIZE_TRAIN = 32
+_C.INPUT.SIZE_TRAIN = [400,250]
 # Size of the image during test
 _C.INPUT.SIZE_TEST = 32
 # Minimum scale for the image during training
@@ -44,9 +44,12 @@ _C.INPUT.PIXEL_STD = [0.3081, ]
 # -----------------------------------------------------------------------------
 _C.DATASETS = CN()
 # List of the dataset names for training, as present in paths_catalog.py
-_C.DATASETS.TRAIN = ()
+_C.DATASETS.TRAIN = ""
 # List of the dataset names for testing, as present in paths_catalog.py
 _C.DATASETS.TEST = ()
+_C.DATASETS.SHIFT = 0.0
+_C.DATASETS.MAXRATION = 0.0
+_C.DATASETS.ROTATION = 0.0
 
 # -----------------------------------------------------------------------------
 # DataLoader
