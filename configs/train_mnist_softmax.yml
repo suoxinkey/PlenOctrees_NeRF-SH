@@ -6,7 +6,7 @@ INPUT:
   SIZE_TRAIN: [800,600]
 
 DATASETS:
-  TRAIN: "/data/wmy/NR/dataset/sport_1_mask"
+  TRAIN: "/data/sport_1_small/"
   SHIFT: 0.0
   MAXRATION: 0.0
   ROTATION: 0.0

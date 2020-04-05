@@ -28,8 +28,8 @@ def ray_sampling(Ks, Ts, image_size, masks=None, mask_threshold = 0.5, images=No
     x = torch.linspace(0,h-1,steps=h,device = Ks.device )
     y = torch.linspace(0,w-1,steps=w,device = Ks.device )
 
-    grid_x, grid_y = torch.meshgrid(x, y)
-    coordinates = torch.stack([grid_x,grid_y]).unsqueeze(0).repeat(M,1,1,1)   #(M,2,H,W)
+    grid_x, grid_y = torch.meshgrid(x,y)
+    coordinates = torch.stack([grid_y, grid_x]).unsqueeze(0).repeat(M,1,1,1)   #(M,2,H,W)
     coordinates = torch.cat([coordinates,torch.ones(coordinates.size(0),1,coordinates.size(2), 
                              coordinates.size(3),device = Ks.device) ],dim=1).permute(0,2,3,1).unsqueeze(-1)
 
