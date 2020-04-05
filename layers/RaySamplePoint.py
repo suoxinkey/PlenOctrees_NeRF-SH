@@ -87,7 +87,9 @@ class RaySamplePoint(nn.Module):
         bin_sample = torch.rand((n, sample_num))
         bin_width = (end - start)/bin_num
         sample_t = (bin_range + bin_sample)* bin_width + start
-        return sample_t
+        sample_point = sample_t.unsqueeze(-1)*rays[:,:3].unsqueeze(1) + rays[:,3:].unsqueeze(1)
+        
+        return sample_t, sample_point
 
 
 # class RayDistributedSamplePoint(nn.Module):

@@ -40,8 +40,8 @@ for i in train_loader:
             p3d = rays[k,:3]*j *0.1 + rays[k,3:]
             #print([p3d[0], p3d[1], p3d[2], color[0], color[1], color[2]])
             point3d.append([p3d[0], p3d[1], p3d[2], color[0], color[1], color[2]])
-    sample_t = rsp.forward(rays.cpu().reshape(-1,6), bbox, method=None)
-    sample_point = sample_t.reshape((-1,100,1))*rays[:,:3].reshape((-1,1,3)) + rays[:,3:].reshape((-1,1,3))
+    sample_t, sample_point = rsp.forward(rays.cpu().reshape(-1,6), bbox, method=None)
+    #sample_point = sample_t.reshape((-1,100,1))*rays[:,:3].reshape((-1,1,3)) + rays[:,3:].reshape((-1,1,3))
     for k in range(sample_point.shape[0]):
         for j in range(100):
             point3d.append([sample_point[k,j,0], sample_point[k,j,1], sample_point[k,j,2], 0,255,255])
