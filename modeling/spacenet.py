@@ -48,8 +48,7 @@ class SpaceNet(nn.Module):
                     nn.ReLU(inplace=True),
                     nn.Linear(256, 128),
                     nn.ReLU(inplace=True),
-                    nn.Linear(128,1),
-                    nn.ReLU(inplace=True),
+                    nn.Linear(128,1)
                 )
         self.rgb_net = nn.Sequential(
                     nn.ReLU(inplace=True),
