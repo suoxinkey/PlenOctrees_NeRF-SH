@@ -3,7 +3,7 @@ import numpy as np
 import torch.nn.functional as F
 from torch import nn
 import torch
-
+from layers.render_layer import gen_weight
 
 def intersection(rays, bbox):
     n = rays.shape[0]
@@ -91,12 +91,48 @@ class RaySamplePoint(nn.Module):
         return sample_t.unsqueeze(-1), sample_point
 
 
-# class RayDistributedSamplePoint(nn.Module):
-#     def __init__(self, fine_num=12):
-#         super(RaySamplePoint, self).__init__()
-#         self.fine_num = fine_num
-#
-#     def forward(self, rays, bbox, pdf):
+class RayDistributedSamplePoint(nn.Module):
+    def __init__(self, fine_num=10):
+        super(RayDistributedSamplePoint, self).__init__()
+        self.fine_num = fine_num
+
+    def forward(self, rays, depth, density, noise=0.0):
+        '''
+        :param rays: N*L*6
+        :param depth: N*L*1
+        :param density: N*L*1
+        :param noise:0
+        :return:
+        '''
+
+        sample_num = self.fine_num
+        n = density.shape[0]
+
+        weights = gen_weight(depth, density, noise=noise) # N*L
+        weights += 1e-5
+        bin = depth.squeeze()
+
+        weights = weights[:, 1:].squeeze() #N*(L-1)
+        pdf = weights/torch.sum(weights, dim=1, keepdim=True)
+        cdf = torch.cumsum(pdf, dim=1)
+        cdf_s = torch.cat((torch.zeros((n, 1)).type(cdf.dtype), cdf), dim=1)
+        fine_bin = torch.linspace(0, 1, sample_num, device=density.device).reshape((1, sample_num)).repeat((n, 1))
+        above_index = torch.ones_like(fine_bin, device=density.device).type(torch.LongTensor)
+        for i in range(cdf.shape[1]):
+            mask = (fine_bin > (cdf_s[:, i]).reshape((n, 1))) & (fine_bin <= (cdf[:, i]).reshape((n, 1)))
+            above_index[mask] = i+1
+        below_index = above_index-1
+        below_index[below_index==-1]=0
+        sn_below = torch.gather(bin, dim=1, index=below_index)
+        sn_above = torch.gather(bin, dim=1, index=above_index)
+        cdf_below = torch.gather(cdf_s, dim=1, index=below_index)
+        cdf_above = torch.gather(cdf_s, dim=1, index=above_index)
+        dnorm = cdf_above - cdf_below
+        dnorm = torch.where(dnorm<1e-5, torch.ones_like(dnorm, device=density.device), dnorm)
+        d = (fine_bin - cdf_below)/dnorm
+        fine_t = (sn_above - sn_below) * d + sn_below
+        fine_sample_point = fine_t.unsqueeze(-1) * rays[:, :3].unsqueeze(1) + rays[:, 3:].unsqueeze(1)
+        return fine_t, fine_sample_point
 
 
 
