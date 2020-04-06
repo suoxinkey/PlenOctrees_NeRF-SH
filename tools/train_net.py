@@ -1,83 +1,75 @@
-# encoding: utf-8
-"""
-@author:  sherlock
-@contact: sherlockliao01@gmail.com
-"""
 
 import argparse
 import os
 import sys
 from os import mkdir
+from apex import amp
+import shutil
+
+
+
 
 import torch.nn.functional as F
 
-sys.path.append('.')
+sys.path.append('..')
 from config import cfg
-from data import make_data_loader
-from engine.example_trainer import do_train
+from data import make_data_loader, make_data_loader_view
+from engine.trainer import do_train
 from modeling import build_model
-from solver import make_optimizer
+from solver import make_optimizer, WarmupMultiStepLR
+from layers import make_loss
 
 from utils.logger import setup_logger
 
+from torch.utils.tensorboard import SummaryWriter
+import torch
+from layers.RaySamplePoint import RaySamplePoint
+import random
 
-def train(cfg):
-    model = build_model(cfg)
-    device = cfg.MODEL.DEVICE
+torch.cuda.set_device(int(sys.argv[1]))
 
-    optimizer = make_optimizer(cfg, model)
-    scheduler = None
 
-    arguments = {}
 
-    train_loader = make_data_loader(cfg, is_train=True)
-    val_loader = make_data_loader(cfg, is_train=False)
+cfg.merge_from_file('../configs/config.yml')
+cfg.freeze()
 
-    do_train(
+
+output_dir = cfg.OUTPUT_DIR
+writer = SummaryWriter(log_dir=os.path.join(output_dir,'tensorboard'))
+logger = setup_logger("RFRender", output_dir, 0)
+logger.info("Running with config:\n{}".format(cfg))
+
+shutil.copy('../configs/config.yml', os.path.join(cfg.OUTPUT_DIR,'configs.yml'))
+
+
+
+train_loader, dataset = make_data_loader(cfg, is_train=True)
+val_loader, dataset_val = make_data_loader_view(cfg, is_train=True)
+model = build_model(cfg).cuda()
+
+maxs = torch.max(dataset.bbox[0], dim=0).values.cuda()+0.5
+mins = torch.min(dataset.bbox[0], dim=0).values.cuda()-0.5
+model.set_max_min(maxs,mins)
+
+
+optimizer = make_optimizer(cfg, model)
+
+scheduler = WarmupMultiStepLR(optimizer, cfg.SOLVER.STEPS, cfg.SOLVER.GAMMA, cfg.SOLVER.WARMUP_FACTOR,
+                               cfg.SOLVER.WARMUP_ITERS, cfg.SOLVER.WARMUP_METHOD)
+
+
+
+loss_fn = make_loss(cfg)
+
+model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
+
+do_train(
         cfg,
         model,
         train_loader,
         val_loader,
         optimizer,
-        None,
-        F.cross_entropy,
+        scheduler,
+        loss_fn,
+        writer
     )
-
-
-def main():
-    parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
-    parser.add_argument(
-        "--config_file", default="", help="path to config file", type=str
-    )
-    parser.add_argument("opts", help="Modify config options using the command-line", default=None,
-                        nargs=argparse.REMAINDER)
-
-    args = parser.parse_args()
-
-    num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
-
-    if args.config_file != "":
-        cfg.merge_from_file(args.config_file)
-    cfg.merge_from_list(args.opts)
-    cfg.freeze()
-
-    output_dir = cfg.OUTPUT_DIR
-    if output_dir and not os.path.exists(output_dir):
-        mkdir(output_dir)
-
-    logger = setup_logger("template_model", output_dir, 0)
-    logger.info("Using {} GPUS".format(num_gpus))
-    logger.info(args)
-
-    if args.config_file != "":
-        logger.info("Loaded configuration file {}".format(args.config_file))
-        with open(args.config_file, 'r') as cf:
-            config_str = "\n" + cf.read()
-            logger.info(config_str)
-    logger.info("Running with config:\n{}".format(cfg))
-
-    train(cfg)
-
-
-if __name__ == '__main__':
-    main()

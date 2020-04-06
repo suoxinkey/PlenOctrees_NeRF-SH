@@ -15,11 +15,14 @@ class RFRender(nn.Module):
         super(RFRender, self).__init__()
 
 
-        self. rsp_coarse = RaySamplePoint()
+        self.rsp_coarse = RaySamplePoint()
 
         self.spacenet = SpaceNet()
 
         self.volume_render = VolumeRenderer()
+
+        self.maxs = None
+        self.mins = None
 
 
 
@@ -37,13 +40,26 @@ class RFRender(nn.Module):
     '''
     def forward(self, rays, bboxes):
 
-        sampled_rays_coarse_xyz, sampled_rays_coarse_t  = rsp.forward(rays, bboxes, method=None)
+        if self.maxs is None:
+            print('please set max_min before use.')
+            return None
+
+        sampled_rays_coarse_t, sampled_rays_coarse_xyz  = self.rsp_coarse.forward(rays, bboxes, method=None)
+
+        rgbs, density = self.spacenet(sampled_rays_coarse_xyz, rays, self.maxs, self.mins)
 
 
-        rgbs, density = self.spacenet(sampled_rays_coarse_xyz, rays)
 
 
         color, depth = self.volume_render(sampled_rays_coarse_t, rgbs, density)
 
+         #print('depth range:',depth.max(),depth.min())
+        #print('color range:',color.max(),color.min())
+
 
         return color, depth
+
+
+    def set_max_min(self, maxs, mins):
+        self.maxs = maxs
+        self.mins = mins
