@@ -32,7 +32,7 @@ class VolumeRenderer(nn.Module):
         alpha = self.sigma2alpha(sigma, delta.unsqueeze(-1))
         weights = torch.mul(alpha, torch.cumprod(1.-alpha+1e-10, dim=-1))   #[N, L, 1]
 
-        color = torch.sum(torch.mul(F.sigmoid(rgb), weights), dim=1) #[N, 3]
+        color = torch.sum(torch.mul(torch.sigmoid(rgb), weights), dim=1) #[N, 3]
 
         depth = torch.sum(weights * depth, dim=1)   # [N, 1]
         acc = torch.sum(weights, dim=1).unsqueeze(-1)   

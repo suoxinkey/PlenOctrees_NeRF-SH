@@ -75,7 +75,7 @@ class SpaceNet(nn.Module):
     density: (N,L,1) or (N,1)
 
     '''
-    def forward(self, pos, rays):
+    def forward(self, pos, rays, maxs, mins):
 
         dirs = rays[...,0:3]
         
@@ -88,6 +88,8 @@ class SpaceNet(nn.Module):
             pos = pos.reshape((-1,self.c_pos))     #(N,c_pos)
             dirs = dirs.reshape((-1,self.c_pos))   #(N,3)
 
+
+        pos = ((pos - mins)/(maxs-mins) - 0.5)*2
 
         pos = self.tri_kernel_pos(pos)
         dirs = self.tri_kernel_dir(dirs)
