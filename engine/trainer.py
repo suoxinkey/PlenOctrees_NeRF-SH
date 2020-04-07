@@ -13,7 +13,7 @@ from ignite.metrics import Accuracy, Loss, RunningAverage
 from apex import amp
 import torch
 
-from utils import batchify_ray
+from utils import batchify_ray, vis_density
 
 
 def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, swriter = None):
@@ -186,6 +186,12 @@ def do_train(
                         .format(engine.state.epoch,  avg_loss)
                         )
             swriter.add_scalar('Loss/val_loss',avg_loss, engine.state.epoch)
+
+            xyz, density = vis_density(model)
+
+            swriter.add_mesh('density',vertices=xyz, colors=density)
+            swriter.flush()
+
             
 
     trainer.run(train_loader, max_epochs=epochs)

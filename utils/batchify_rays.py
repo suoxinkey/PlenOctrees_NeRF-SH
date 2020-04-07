@@ -1,7 +1,7 @@
 import torch
 
 
-def batchify_ray(model, rays, bboxes, chuncks = 1024*16):
+def batchify_ray(model, rays, bboxes, chuncks = 1024*13):
     N = rays.size(0)
     if N <chuncks:
         return model(rays, bboxes)
