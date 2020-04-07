@@ -63,7 +63,7 @@ class Random_Transforms(object):
         offset2 = random.randint(-self.random_range,self.random_range)
 
         rotation = (random.random()-0.5)*np.deg2rad(self.random_rotation)
-        ration = random.random()*self.random_scale + 1.0 - random.random()*self.random_scale/4
+        ration = random.random()*self.random_scale + 1.0
 
         width, height = img.size
 

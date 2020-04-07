@@ -10,7 +10,9 @@ def gen_weight(sigma, delta, act_fn=F.relu):
     """
     alpha = 1.-torch.exp(-act_fn(sigma.squeeze(-1))*delta)
     weight = 1.-alpha+1e-10
-    weight = alpha * torch.cumprod(weight, dim=-1) / weight # exclusive cum_prod
+    #weight = alpha * torch.cumprod(weight, dim=-1) / weight # exclusive cum_prod
+
+    weight = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1),device = alpha.device), weight], -1), -1)[:, :-1]
 
     return weight
 
@@ -31,7 +33,8 @@ class VolumeRenderer(nn.Module):
         """
 
         delta = (depth[:, 1:] - depth[:, :-1]).squeeze()  # [N, L-1]
-        pad = torch.Tensor([1e10]).expand_as(delta[...,:1]).to(delta.device)
+        #pad = torch.Tensor([1e10],device=delta.device).expand_as(delta[...,:1])
+        pad = 1e-5*torch.ones(delta[...,:1].size(),device = delta.device)
         delta = torch.cat([delta, pad], dim=-1)   # [N, L]
 
         if noise > 0.:
@@ -41,8 +44,9 @@ class VolumeRenderer(nn.Module):
 
         color = torch.sum(torch.sigmoid(rgb) * weights, dim=1) #[N, 3]
         depth = torch.sum(weights * depth, dim=1)   # [N, 1]
+        acc_map = torch.sum(weights, dim = 1)
         
-        return color, depth
+        return color, depth, acc_map, weights
     
     
 if __name__ == "__main__":
@@ -86,7 +90,7 @@ if __name__ == "__main__":
     in_sigma = raws[:, :, 3:]
     print('in_sigma = ', in_sigma.shape)
 
-    color, dpt, weights = renderer(in_depth.unsqueeze(-1).cuda(), in_raw.cuda(), in_sigma.cuda(), ray_dir=ray_d.cuda())
+    color, dpt, weights = renderer(in_depth.unsqueeze(-1).cuda(), in_raw.cuda(), in_sigma.cuda())
     print('Predicted-TF [GPU]: ', color.shape, dpt.shape, weights.shape)
 
     print('ERROR [GPU]: ', 
