@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 from torch import nn
+import time
 
 from utils import Trigonometric_kernel
 
@@ -24,43 +25,46 @@ class SpaceNet(nn.Module):
         self.pos_dim = self.tri_kernel_pos.calc_dim(c_pos)
         self.dir_dim = self.tri_kernel_dir.calc_dim(3)
 
+        backbone_dim = 256
+        head_dim = 128
+
 
         self.stage1 = nn.Sequential(
-                    nn.Linear(self.pos_dim, 256),
+                    nn.Linear(self.pos_dim, backbone_dim),
                     nn.ReLU(inplace=True),
-                    nn.Linear(256,256),
+                    nn.Linear(backbone_dim,backbone_dim),
                     nn.ReLU(inplace=True),
-                    nn.Linear(256,256),
+                    nn.Linear(backbone_dim,backbone_dim),
                     nn.ReLU(inplace=True),
-                    nn.Linear(256,256),
+                    nn.Linear(backbone_dim,backbone_dim),
                     nn.ReLU(inplace=True),
                 )
 
         self.stage2 = nn.Sequential(
-                    nn.Linear(256+self.pos_dim, 256),
+                    nn.Linear(backbone_dim+self.pos_dim, backbone_dim),
                     nn.ReLU(inplace=True),
-                    nn.Linear(256,256),
+                    nn.Linear(backbone_dim,backbone_dim),
                     nn.ReLU(inplace=True),
-                    nn.Linear(256,256),
+                    nn.Linear(backbone_dim,backbone_dim),
                 )
 
         self.density_net = nn.Sequential(
                     nn.ReLU(inplace=True),
-                    nn.Linear(256, 128),
+                    nn.Linear(backbone_dim, head_dim),
                     nn.ReLU(inplace=True),
-                    nn.Linear(128,1)
+                    nn.Linear(head_dim,1)
                 )
         self.rgb_net = nn.Sequential(
                     nn.ReLU(inplace=True),
-                    nn.Linear(256+self.dir_dim, 128),
+                    nn.Linear(backbone_dim+self.dir_dim, head_dim),
                     nn.ReLU(inplace=True),
-                    nn.Linear(128,128),
+                    nn.Linear(head_dim,head_dim),
                     nn.ReLU(inplace=True),
-                    nn.Linear(128,128),
+                    nn.Linear(head_dim,head_dim),
                     nn.ReLU(inplace=True),
-                    nn.Linear(128,128),
+                    nn.Linear(head_dim,head_dim),
                     nn.ReLU(inplace=True),
-                    nn.Linear(128,3)
+                    nn.Linear(head_dim,3)
                 )
 
     '''
@@ -76,6 +80,8 @@ class SpaceNet(nn.Module):
     '''
     def forward(self, pos, rays, maxs, mins):
 
+
+        #beg = time.time()
         rgbs = None
         if rays is not None:
 
@@ -100,19 +106,29 @@ class SpaceNet(nn.Module):
         if rays is not None:
             dirs = self.tri_kernel_dir(dirs)
 
+        #torch.cuda.synchronize()
+        #print('transform :',time.time()-beg)
 
+        #beg = time.time()
         x = self.stage1(pos)
         x = self.stage2(torch.cat([x,pos],dim =1))
 
 
         density = self.density_net(x)
+
+
         if rays is not None:
             rgbs = self.rgb_net(torch.cat([x,dirs],dim =1))
+
+        #torch.cuda.synchronize()
+        #print('fc:',time.time()-beg)
 
         if bins_mode:
             density = density.reshape((-1,L,1))
             if rays is not None:
                 rgbs = rgbs.reshape((-1,L,3))
+
+
 
 
 

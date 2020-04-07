@@ -60,7 +60,7 @@ def intersection(rays, bbox):
     return tlist[0]
 
 class RaySamplePoint(nn.Module):
-    def __init__(self, coarse_num=80):
+    def __init__(self, coarse_num=64):
         super(RaySamplePoint, self).__init__()
         self.coarse_num = coarse_num
 

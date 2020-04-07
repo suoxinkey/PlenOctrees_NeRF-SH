@@ -35,13 +35,13 @@ def make_data_loader(cfg, is_train=True):
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
     data_loader = data.DataLoader(
-        datasets, batch_size=batch_size, shuffle=False, num_workers=num_workers
+        datasets, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers
     )
 
     return data_loader, datasets
 
 
-def make_data_loader_view(cfg, is_train=True):
+def make_data_loader_view(cfg, is_train=False):
 
     batch_size = cfg.SOLVER.IMS_PER_BATCH
 
@@ -51,7 +51,7 @@ def make_data_loader_view(cfg, is_train=True):
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
     data_loader = data.DataLoader(
-        datasets, batch_size=batch_size, shuffle=False, num_workers=num_workers
+        datasets, batch_size=batch_size, shuffle=True, num_workers=num_workers
     )
 
     return data_loader, datasets

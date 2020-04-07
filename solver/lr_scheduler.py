@@ -2,6 +2,7 @@
 
 from bisect import bisect_right
 import torch
+import math
 
 
 # FIXME ideally this would be achieved with a CombinedLRScheduler,
@@ -51,3 +52,19 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):
             * self.gamma ** bisect_right(self.milestones, self.last_epoch)
             for base_lr in self.base_lrs
         ]
+
+
+def build_scheduler(optimizer, warmup_epoches, start_epoches, end_epoches, scale=0.1):
+
+    def scheduler(epoch):
+        epoch0 = epoch+1.0
+        print('sc',warmup_epoches)
+        if epoch0<=warmup_epoches:
+            return epoch0/warmup_epoches
+
+        if epoch0>=start_epoches:
+            return (1.0-scale)*math.exp(-(epoch0-start_epoches)/(end_epoches-start_epoches)) + scale
+
+
+        return 1.0
+    return  torch.optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=[scheduler]*len(optimizer.param_groups))

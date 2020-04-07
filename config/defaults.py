@@ -27,7 +27,7 @@ _C.INPUT = CN()
 # Size of the image during training
 _C.INPUT.SIZE_TRAIN = [400,250]
 # Size of the image during test
-_C.INPUT.SIZE_TEST = 32
+_C.INPUT.SIZE_TEST = [400,250]
 # Minimum scale for the image during training
 _C.INPUT.MIN_SCALE_TRAIN = 0.5
 # Maximum scale for the image during test
@@ -84,6 +84,10 @@ _C.SOLVER.WARMUP_METHOD = "linear"
 _C.SOLVER.CHECKPOINT_PERIOD = 10
 _C.SOLVER.LOG_PERIOD = 100
 _C.SOLVER.BUNCH = 4096
+_C.SOLVER.START_ITERS=50
+_C.SOLVER.END_ITERS=200
+_C.SOLVER.LR_SCALE=0.1
+_C.SOLVER.COARSE_STAGE = 10
 
 # Number of images per batch
 # This is global, so if we have 8 GPUs and IMS_PER_BATCH = 16, each GPU will
