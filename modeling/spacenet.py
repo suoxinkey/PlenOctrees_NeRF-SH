@@ -60,8 +60,7 @@ class SpaceNet(nn.Module):
                     nn.ReLU(inplace=True),
                     nn.Linear(128,128),
                     nn.ReLU(inplace=True),
-                    nn.Linear(128,3),
-                    nn.Sigmoid()
+                    nn.Linear(128,3)
                 )
 
     '''
@@ -77,22 +76,29 @@ class SpaceNet(nn.Module):
     '''
     def forward(self, pos, rays, maxs, mins):
 
-        dirs = rays[...,0:3]
-        
+        rgbs = None
+        if rays is not None:
+
+            dirs = rays[...,0:3]
+            
         bins_mode = False
-        if len(pos)>2:
+        if len(pos.size())>2:
             bins_mode = True
             L = pos.size(1)
-            dirs = dirs.unsqueeze(1).repeat(1,L,1)
-
             pos = pos.reshape((-1,self.c_pos))     #(N,c_pos)
-            dirs = dirs.reshape((-1,self.c_pos))   #(N,3)
+            if rays is not None:
+                dirs = dirs.unsqueeze(1).repeat(1,L,1)
+                dirs = dirs.reshape((-1,self.c_pos))   #(N,3)
+
+            
+           
 
 
         pos = ((pos - mins)/(maxs-mins) - 0.5)*2
 
         pos = self.tri_kernel_pos(pos)
-        dirs = self.tri_kernel_dir(dirs)
+        if rays is not None:
+            dirs = self.tri_kernel_dir(dirs)
 
 
         x = self.stage1(pos)
@@ -100,11 +106,13 @@ class SpaceNet(nn.Module):
 
 
         density = self.density_net(x)
-        rgbs = self.rgb_net(torch.cat([x,dirs],dim =1))
+        if rays is not None:
+            rgbs = self.rgb_net(torch.cat([x,dirs],dim =1))
 
         if bins_mode:
             density = density.reshape((-1,L,1))
-            rgbs = rgbs.reshape((-1,L,3))
+            if rays is not None:
+                rgbs = rgbs.reshape((-1,L,3))
 
 
 
