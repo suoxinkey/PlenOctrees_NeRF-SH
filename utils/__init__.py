@@ -6,4 +6,7 @@
 
 from .dimension_kernel import Trigonometric_kernel
 from .ray_sampling import ray_sampling
+from .batchify_rays import batchify_ray
+from .vis_density import vis_density
+from .sample_pdf import sample_pdf
 

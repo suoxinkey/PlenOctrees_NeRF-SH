@@ -5,19 +5,20 @@ import torch.nn.functional as F
 import numpy as np
 
 
-def gen_weight(sigma, delta, act_fn=F.softplus):
+def gen_weight(sigma, delta, act_fn=F.relu):
     """Generate transmittance from predicted density
     """
-    alpha = 1.-torch.exp(-act_fn(sigma)*delta)
+    alpha = 1.-torch.exp(-act_fn(sigma.squeeze(-1))*delta)
     weight = 1.-alpha+1e-10
-    weight = alpha * torch.cumprod(weight, dim=-1) / weight # exclusive cum_prod
+    #weight = alpha * torch.cumprod(weight, dim=-1) / weight # exclusive cum_prod
+
+    weight = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1),device = alpha.device), weight], -1), -1)[:, :-1]
 
     return weight
 
 class VolumeRenderer(nn.Module):
-    def __init__(self, act_fn=F.softplus):
+    def __init__(self):
         super(VolumeRenderer, self).__init__()
-        self.act_fn = act_fn
 
     def forward(self, depth, rgb, sigma, noise=0.):
         """
@@ -32,18 +33,20 @@ class VolumeRenderer(nn.Module):
         """
 
         delta = (depth[:, 1:] - depth[:, :-1]).squeeze()  # [N, L-1]
-        pad = torch.Tensor([1e10]).expand_as(delta[...,:1]).to(delta.device)
+        #pad = torch.Tensor([1e10],device=delta.device).expand_as(delta[...,:1])
+        pad = 1e-5*torch.ones(delta[...,:1].size(),device = delta.device)
         delta = torch.cat([delta, pad], dim=-1)   # [N, L]
 
         if noise > 0.:
             sigma += (torch.normal(size=sigma.size()) * noise)
 
-        weights = gen_weight(sigma.squeeze(-1), delta, act_fn=self.act_fn).unsqueeze(-1)    #[N, L, 1]
+        weights = gen_weight(sigma, delta).unsqueeze(-1)    #[N, L, 1]
 
-        color = torch.sum(torch.sigmoid(rgb) * weights, dim=-2) #[N, 3]
-        depth = torch.sum(weights * depth, dim=-2)   # [N, 1]
+        color = torch.sum(torch.sigmoid(rgb) * weights, dim=1) #[N, 3]
+        depth = torch.sum(weights * depth, dim=1)   # [N, 1]
+        acc_map = torch.sum(weights, dim = 1)
         
-        return color, depth
+        return color, depth, acc_map, weights
     
     
 if __name__ == "__main__":
@@ -80,7 +83,7 @@ if __name__ == "__main__":
 
     print('TF input = ', raws.shape, ray_d.shape, z_val.shape)
 
-    in_depth = z_val * torch.norm(ray_d, dim=-1, keepdim=True)
+    in_depth = z_val
     print('in_depth = ', in_depth.shape)
     in_raw = raws[:, :, :3]
     print('in_raw = ', in_raw.shape)
@@ -91,7 +94,6 @@ if __name__ == "__main__":
     print('Predicted-TF [GPU]: ', color.shape, dpt.shape, weights.shape)
 
     print('ERROR [GPU]: ', 
-            np.mean(np.abs(tf_color - color.detach().cpu().numpy())),
-            np.mean(np.abs(tf_depth - dpt.squeeze(-1).detach().cpu().numpy())),
-            np.mean(np.abs(tf_weights - weights.squeeze(-1).detach().cpu().numpy())))
-    
+            np.mean(tf_color - color.detach().cpu().numpy()),
+            np.mean(tf_depth - dpt.squeeze(-1).detach().cpu().numpy()),
+            np.mean(tf_weights - weights.squeeze(-1).detach().cpu().numpy()))

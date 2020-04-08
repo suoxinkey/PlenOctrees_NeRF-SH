@@ -7,7 +7,6 @@ from layers.render_layer import gen_weight
 
 def intersection(rays, bbox):
     n = rays.shape[0]
-    bbox = bbox.repeat(n,1,1)
     left_face = bbox[:, 0, 0]
     right_face = bbox[:, 6, 0]
     front_face = bbox[:, 0, 1]
@@ -49,7 +48,7 @@ def intersection(rays, bbox):
     up_mask = (up_point[:, 0] >= bbox[:, 4, 0]) & (up_point[:, 0] <= bbox[:, 6, 0]) \
               & (up_point[:, 1] >= bbox[:, 4, 1]) & (up_point[:, 1] <= bbox[:, 6, 1])
 
-    tlist = -torch.ones_like(rays)
+    tlist = -torch.ones_like(rays, device=rays.device)
     tlist[left_mask, 0] = left_t[left_mask].reshape((-1,))
     tlist[right_mask, 1] = right_t[right_mask].reshape((-1,))
     tlist[front_mask, 2] = front_t[front_mask].reshape((-1,))
@@ -61,7 +60,7 @@ def intersection(rays, bbox):
     return tlist[0]
 
 class RaySamplePoint(nn.Module):
-    def __init__(self, coarse_num=100):
+    def __init__(self, coarse_num=64):
         super(RaySamplePoint, self).__init__()
         self.coarse_num = coarse_num
 
@@ -77,19 +76,19 @@ class RaySamplePoint(nn.Module):
         n = rays.shape[0]
         #if method=='coarse':
         sample_num = self.coarse_num
-        bin_range = torch.arange(0, sample_num).reshape((1, sample_num)).float()
+        bin_range = torch.arange(0, sample_num, device=rays.device).reshape((1, sample_num)).float()
 
         bin_num = sample_num
         n = rays.shape[0]
         tlist = intersection(rays, bbox)
         start = (tlist[:,1]).reshape((n,1))
         end = (tlist[:, 0]).reshape((n, 1))
-        bin_sample = torch.rand((n, sample_num))
+        bin_sample = torch.rand((n, sample_num), device=rays.device)
         bin_width = (end - start)/bin_num
         sample_t = (bin_range + bin_sample)* bin_width + start
         sample_point = sample_t.unsqueeze(-1)*rays[:,:3].unsqueeze(1) + rays[:,3:].unsqueeze(1)
         
-        return sample_t, sample_point
+        return sample_t.unsqueeze(-1), sample_point
 
 
 class RayDistributedSamplePoint(nn.Module):
