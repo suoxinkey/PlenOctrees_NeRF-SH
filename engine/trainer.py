@@ -22,27 +22,23 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
 
     if use_cuda:
         model.cuda()
-
-    global iters
-    iters = 0
-
-
     
     def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
         
 
-        rays, rgbs, bboxes = batch
+        rays, rgbs, bboxes,  near_fars = batch
 
         rays = rays[0].cuda()
         rgbs = rgbs[0].cuda()
         bboxes = bboxes[0].cuda()
+        near_fars = near_fars[0].cuda()
         
         if engine.state.epoch<coarse_stage:
-            stage2, stage1 = model( rays, bboxes,True)
+            stage2, stage1 = model( rays, bboxes,True, near_far=near_fars)
         else:
-            stage2, stage1 = model( rays, bboxes,False)
+            stage2, stage1 = model( rays, bboxes,False, near_far = near_fars)
 
         loss1 = loss_fn(stage2[0], rgbs)
         loss2 = loss_fn(stage1[0], rgbs)
@@ -81,7 +77,7 @@ def create_supervised_evaluator(model,  metrics=None, swriter = None):
   
         
 
-        rays, rgbs, bboxes, color, mask, ROI = batch
+        rays, rgbs, bboxes, color, mask, ROI, near_far = batch
 
         rays = rays[0].cuda()
         rgbs = rgbs[0].cuda()
@@ -154,7 +150,7 @@ def evaluator(val_dataset, model, loss_fn, swriter, epoch):
     model.eval()
 
 
-    rays, rgbs, bboxes, color, mask, ROI = val_dataset.__getitem__(0)
+    rays, rgbs, bboxes, color, mask, ROI,near_far = val_dataset.__getitem__(0)
 
     rays = rays.cuda()
     rgbs = rgbs.cuda()
@@ -162,10 +158,11 @@ def evaluator(val_dataset, model, loss_fn, swriter, epoch):
     color_gt = color.cuda()
     mask = mask.cuda()
     ROI = ROI.cuda()
+    near_far = near_far.cuda()
     
     with torch.no_grad():
 
-        stage2, stage1 = batchify_ray(model, rays, bboxes)
+        stage2, stage1 = batchify_ray(model, rays, bboxes,near_far = near_far)
 
         color_1 = stage2[0]
         depth_1 = stage2[1]
@@ -223,7 +220,8 @@ def do_train(
         optimizer,
         scheduler,
         loss_fn,
-        swriter
+        swriter,
+        resume_epoch = 0
 ):
     log_period = cfg.SOLVER.LOG_PERIOD
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
@@ -245,7 +243,8 @@ def do_train(
     timer = Timer(average=True)
 
     trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpointer, {'model': model,
-                                                                     'optimizer': optimizer})
+                                                                     'optimizer': optimizer,
+                                                                     'scheduler':scheduler})
     timer.attach(trainer, start=Events.EPOCH_STARTED, resume=Events.ITERATION_STARTED,
                  pause=Events.ITERATION_COMPLETED, step=Events.ITERATION_COMPLETED)
 
@@ -262,6 +261,12 @@ def do_train(
 
         #res = torch.cat([xyz[0],density[0]],dim=1).detach().cpu().numpy()
         #np.savetxt(os.path.join(output_dir,'voxels_%d.txt' % engine.state.epoch),res)
+
+    @trainer.on(Events.STARTED)
+    def resume_training(engine):
+        if resume_epoch>0:
+            engine.state.iteration = resume_epoch * len(train_loader)
+            engine.state.epoch = resume_epoch
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
