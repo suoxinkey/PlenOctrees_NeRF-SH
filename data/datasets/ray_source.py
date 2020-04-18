@@ -15,16 +15,16 @@ from utils import ray_sampling
 class IBRay_NHR(torch.utils.data.Dataset):
 
 
-    def __init__(self,data_folder_path,  transforms, bunch = 1024):
+    def __init__(self,data_folder_path,  transforms, bunch = 1024,use_mask = False):
         super(IBRay_NHR, self).__init__()
 
         self.bunch = bunch
 
-        self.NHR_dataset = IBRDynamicDataset(data_folder_path, 1, True, transforms, [1.0, 6.5, 0.8], skip_step = 1, random_noisy = 0, holes='None')
+        self.NHR_dataset = IBRDynamicDataset(data_folder_path, 1, use_mask, transforms, [1.0, 6.5, 0.8], skip_step = 1, random_noisy = 0, holes='None')
 
         self.rays = []
         self.rgbs = []
-
+        self.use_mask = use_mask
 
         if not os.path.exists(os.path.join(data_folder_path,'rays_tmp')):
             os.mkdir(os.path.join(data_folder_path,'rays_tmp'))
@@ -32,7 +32,12 @@ class IBRay_NHR(torch.utils.data.Dataset):
         if not os.path.exists(os.path.join(os.path.join(data_folder_path,'rays_tmp'),'rays_0.pt')):
             for i in range(len(self.NHR_dataset)):
                 img, self.vs, _, T, K, _,_ = self.NHR_dataset.__getitem__(i)
-                rays,rgbs = ray_sampling(K.unsqueeze(0), T.unsqueeze(0), (img.size(1),img.size(2)), masks = img[3,:,:].unsqueeze(0), mask_threshold = 0.5, images = img[0:3,:,:].unsqueeze(0) )
+                img_rgb = img[0:3,:,:]
+                if self.use_mask:
+                    mask = img[4,:,:] *img[3,:,:] 
+                    img_rgb[:, mask<0.5] = 1.0
+
+                rays,rgbs = ray_sampling(K.unsqueeze(0), T.unsqueeze(0), (img.size(1),img.size(2)), masks = img[4,:,:].unsqueeze(0), mask_threshold = 0.5, images = img_rgb.unsqueeze(0) )
                 self.rays.append(rays)
                 self.rgbs.append(rgbs)
                 print(i,'| generate %d rays.'%rays.size(0))
@@ -82,11 +87,11 @@ class IBRay_NHR(torch.utils.data.Dataset):
 class IBRay_NHR_View(torch.utils.data.Dataset):
 
 
-    def __init__(self,data_folder_path,  transforms):
+    def __init__(self,data_folder_path,  transforms, use_mask = False):
         super(IBRay_NHR_View, self).__init__()
 
-
-        self.NHR_dataset = IBRDynamicDataset(data_folder_path, 1, True, transforms, [1.0, 6.5, 0.8], skip_step = 1, random_noisy = 0, holes='None')
+        self.use_mask = use_mask
+        self.NHR_dataset = IBRDynamicDataset(data_folder_path, 1, use_mask, transforms, [1.0, 6.5, 0.8], skip_step = 1, random_noisy = 0, holes='None')
 
         
         img, self.vs, _, T, K, _,_ = self.NHR_dataset.__getitem__(0)
@@ -110,7 +115,12 @@ class IBRay_NHR_View(torch.utils.data.Dataset):
 
         img, self.vs, _, T, K, _,_ = self.NHR_dataset.__getitem__(index)
 
-        rays,rgbs = ray_sampling(K.unsqueeze(0), T.unsqueeze(0), (img.size(1),img.size(2)), images = img[0:3,:,:].unsqueeze(0) )
+        img_rgb = img[0:3,:,:]
+        if self.use_mask:
+            mask = img[4,:,:] *img[3,:,:] 
+            img_rgb[:, mask<0.5] = 1.0
 
-        return rays, rgbs, self.bbox.repeat(rays.size(0),1,1), img[0:3,:,:], img[3,:,:].unsqueeze(0), img[4,:,:].unsqueeze(0)
+        rays,rgbs = ray_sampling(K.unsqueeze(0), T.unsqueeze(0), (img.size(1),img.size(2)), images = img_rgb.unsqueeze(0) )
+
+        return rays, rgbs, self.bbox.repeat(rays.size(0),1,1), img_rgb, img[3,:,:].unsqueeze(0), img[4,:,:].unsqueeze(0)
 

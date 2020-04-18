@@ -10,12 +10,12 @@ from .datasets.ray_source import IBRay_NHR, IBRay_NHR_View
 from .transforms import build_transforms
 
 
-def build_dataset(data_folder_path,  transforms, bunch):
-    datasets = IBRay_NHR(data_folder_path, transforms=transforms, bunch=bunch)
+def build_dataset(data_folder_path,  transforms, bunch,use_mask):
+    datasets = IBRay_NHR(data_folder_path, transforms=transforms, bunch=bunch,use_mask=use_mask)
     return datasets
 
-def build_dataset_view(data_folder_path,  transforms):
-    datasets = IBRay_NHR_View(data_folder_path, transforms=transforms)
+def build_dataset_view(data_folder_path,  transforms,use_mask):
+    datasets = IBRay_NHR_View(data_folder_path, transforms=transforms,use_mask=use_mask)
     return datasets
 
 
@@ -31,7 +31,7 @@ def make_data_loader(cfg, is_train=True):
         shuffle = False
 
     transforms = build_transforms(cfg, is_train)
-    datasets = build_dataset(cfg.DATASETS.TRAIN, transforms, bunch=cfg.SOLVER.BUNCH)
+    datasets = build_dataset(cfg.DATASETS.TRAIN, transforms, bunch=cfg.SOLVER.BUNCH, use_mask= cfg.DATASETS.USE_MASK)
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
     data_loader = data.DataLoader(
@@ -47,7 +47,7 @@ def make_data_loader_view(cfg, is_train=False):
 
 
     transforms = build_transforms(cfg, is_train)
-    datasets = build_dataset_view(cfg.DATASETS.TRAIN, transforms)
+    datasets = build_dataset_view(cfg.DATASETS.TRAIN, transforms,use_mask= cfg.DATASETS.USE_MASK)
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
     data_loader = data.DataLoader(

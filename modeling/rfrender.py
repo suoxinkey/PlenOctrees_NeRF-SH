@@ -5,20 +5,25 @@ import torch.nn.functional as F
 from torch import nn
 
 from utils import Trigonometric_kernel, sample_pdf
-from layers.RaySamplePoint import RaySamplePoint
+from layers.RaySamplePoint import RaySamplePoint, RaySamplePoint_Near_Far
 from .spacenet import SpaceNet
 from layers.render_layer import VolumeRenderer, gen_weight
 import time
 
 class RFRender(nn.Module):
 
-    def __init__(self):
+    def __init__(self, coarse_ray_sample, fine_ray_sample):
         super(RFRender, self).__init__()
 
+        self.coarse_ray_sample = coarse_ray_sample
+        self.fine_ray_sample = fine_ray_sample
 
-        self.rsp_coarse = RaySamplePoint()
+
+        self.rsp_coarse = RaySamplePoint_Near_Far(self.coarse_ray_sample)
+        #self.rsp_coarse = RaySamplePoint(self.coarse_ray_sample)
 
         self.spacenet = SpaceNet()
+        self.spacenet_fine = SpaceNet()
 
         self.volume_render = VolumeRenderer()
 
@@ -41,13 +46,15 @@ class RFRender(nn.Module):
     '''
     def forward(self, rays, bboxes, only_coarse = False):
 
-        if self.maxs is None:
-            print('please set max_min before use.')
-            return None
+        #if self.maxs is None:
+        #    print('please set max_min before use.')
+        #    return None
 
 
         #beg = time.time()
-        sampled_rays_coarse_t, sampled_rays_coarse_xyz  = self.rsp_coarse.forward(rays, bboxes, method=None)
+        #sampled_rays_coarse_t, sampled_rays_coarse_xyz  = self.rsp_coarse.forward(rays, bboxes)
+        sampled_rays_coarse_t, sampled_rays_coarse_xyz  = self.rsp_coarse.forward(rays)
+
         sampled_rays_coarse_t = sampled_rays_coarse_t.detach()
         sampled_rays_coarse_xyz = sampled_rays_coarse_xyz.detach()
 
@@ -61,7 +68,7 @@ class RFRender(nn.Module):
         if not only_coarse:
 
 
-            z_samples = sample_pdf(sampled_rays_coarse_t.squeeze(), weights_0.squeeze()[...,1:-1], N_samples = 80)
+            z_samples = sample_pdf(sampled_rays_coarse_t.squeeze(), weights_0.squeeze()[...,1:-1], N_samples = self.fine_ray_sample)
             z_samples = z_samples.detach()   # (N,L)
 
 
@@ -74,7 +81,7 @@ class RFRender(nn.Module):
 
 
             #beg = time.time()
-            rgbs, density = self.spacenet(samples_fine_xyz, rays, self.maxs, self.mins)
+            rgbs, density = self.spacenet_fine(samples_fine_xyz, rays, self.maxs, self.mins)
             color, depth, acc_map, weights = self.volume_render(z_vals_fine.unsqueeze(-1), rgbs, density)
 
         else:

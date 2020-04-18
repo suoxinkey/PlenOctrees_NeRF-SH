@@ -136,3 +136,49 @@ class RayDistributedSamplePoint(nn.Module):
 
 
 
+class RaySamplePoint_Near_Far(nn.Module):
+    def __init__(self, sample_num=75):
+        super(RaySamplePoint_Near_Far, self).__init__()
+        self.sample_num = sample_num
+
+
+    def forward(self, rays,near_far=None):
+        '''
+        :param rays: N*6
+        :param bbox: N*8*3  0,1,2,3 bottom 4,5,6,7 up
+        pdf: n*coarse_num 表示权重
+        :param method:
+        :return: N*C*3
+        '''
+        n = rays.shape[0]
+        
+
+        ray_d = rays[:,:3]
+        ray_o = rays[:,3:]
+
+        near = 1
+
+        far = 5.5
+
+        t_vals = torch.linspace(0., 1., steps=self.sample_num,device =rays.device)
+        z_vals = near * (1.-t_vals) + far * (t_vals)
+
+        z_vals = z_vals.expand([n, self.sample_num])
+
+        mids = .5 * (z_vals[...,1:] + z_vals[...,:-1])
+        upper = torch.cat([mids, z_vals[...,-1:]], -1)
+        lower = torch.cat([z_vals[...,:1], mids], -1)
+
+        t_rand = torch.rand(z_vals.size(),device =rays.device)
+
+        z_vals = lower + (upper - lower) * t_rand
+
+
+        pts = ray_o[...,None,:] + ray_d[...,None,:] * z_vals[...,:,None]
+
+
+        
+        return z_vals.unsqueeze(-1), pts
+
+
+

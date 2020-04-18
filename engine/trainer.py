@@ -258,10 +258,10 @@ def do_train(
                     )
         swriter.add_scalar('Loss/val_loss',avg_loss, engine.state.epoch)
 
-        xyz, density = vis_density(model)
+        #xyz, density = vis_density(model)
 
-        res = torch.cat([xyz[0],density[0]],dim=1).detach().cpu().numpy()
-        np.savetxt(os.path.join(output_dir,'voxels_%d.txt' % engine.state.epoch),res)
+        #res = torch.cat([xyz[0],density[0]],dim=1).detach().cpu().numpy()
+        #np.savetxt(os.path.join(output_dir,'voxels_%d.txt' % engine.state.epoch),res)
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
@@ -293,6 +293,7 @@ def do_train(
         @trainer.on(Events.EPOCH_COMPLETED )
         def log_validation_results(engine):
             val_vis(engine)
+            pass
 
             
 

@@ -18,7 +18,11 @@ _C = CN()
 
 _C.MODEL = CN()
 _C.MODEL.DEVICE = "cuda"
-_C.MODEL.NUM_CLASSES = 10
+_C.MODEL.COARSE_RAY_SAMPLING = 64
+_C.MODEL.FINE_RAY_SAMPLING = 80
+
+
+
 
 # -----------------------------------------------------------------------------
 # INPUT
@@ -50,6 +54,7 @@ _C.DATASETS.TEST = ()
 _C.DATASETS.SHIFT = 0.0
 _C.DATASETS.MAXRATION = 0.0
 _C.DATASETS.ROTATION = 0.0
+_C.DATASETS.USE_MASK = False
 
 # -----------------------------------------------------------------------------
 # DataLoader
