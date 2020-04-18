@@ -52,11 +52,11 @@ def get_embedder(multires, i=0):
 
 # Positional encoding
 class Trigonometric_kernel:
-    def __init__(self, L = 10, dim = 3):
+    def __init__(self, L = 10):
 
         self.L = L
-        self.dim = dim
-        self.embed_fn, self.out_ch= get_embedder(10)
+ 
+        self.embed_fn, self.out_ch= get_embedder(L)
 
     '''
     INPUT

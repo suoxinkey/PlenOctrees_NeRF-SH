@@ -1,21 +1,22 @@
 import torch
 
 
-def batchify_ray(model, rays, bboxes, chuncks = 1024*7):
+def batchify_ray(model, rays, bboxes, chuncks = 1024*7, near_far=None):
     N = rays.size(0)
     if N <chuncks:
-        return model(rays, bboxes)
+        return model(rays, bboxes,near_far =near_far)
 
     else:
         rays = rays.split(chuncks, dim=0)
         bboxes = bboxes.split(chuncks, dim=0)
+        near_far = near_far.split(chuncks, dim=0)
 
         colors = [[],[]]
         depths = [ [],[]]
         acc_maps = [ [],[]  ]
 
         for i in range(len(rays)):
-            stage2, stage1 = model( rays[i], bboxes[i])
+            stage2, stage1 = model( rays[i], bboxes[i], near_far = near_far[i])
             colors[0].append(stage1[0])
             depths[0].append(stage1[1])
             acc_maps[0].append(stage1[2])

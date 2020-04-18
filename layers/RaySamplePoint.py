@@ -142,7 +142,7 @@ class RaySamplePoint_Near_Far(nn.Module):
         self.sample_num = sample_num
 
 
-    def forward(self, rays,near_far=None):
+    def forward(self, rays,near_far):
         '''
         :param rays: N*6
         :param bbox: N*8*3  0,1,2,3 bottom 4,5,6,7 up
@@ -150,20 +150,22 @@ class RaySamplePoint_Near_Far(nn.Module):
         :param method:
         :return: N*C*3
         '''
-        n = rays.shape[0]
+        n = rays.size(0)
         
 
         ray_d = rays[:,:3]
         ray_o = rays[:,3:]
 
         near = 1
-
         far = 5.5
+   
 
         t_vals = torch.linspace(0., 1., steps=self.sample_num,device =rays.device)
-        z_vals = near * (1.-t_vals) + far * (t_vals)
+        #print(near_far[:,0:1].repeat(1, self.sample_num).size(), t_vals.unsqueeze(0).repeat(n,1).size())
+        z_vals = near_far[:,0:1].repeat(1, self.sample_num) * (1.-t_vals).unsqueeze(0).repeat(n,1) +  near_far[:,1:2].repeat(1, self.sample_num) * (t_vals.unsqueeze(0).repeat(n,1))
 
-        z_vals = z_vals.expand([n, self.sample_num])
+        #z_vals = near * (1.-t_vals) +  far  * (t_vals)
+        #z_vals = z_vals.expand([n, self.sample_num])
 
         mids = .5 * (z_vals[...,1:] + z_vals[...,:-1])
         upper = torch.cat([mids, z_vals[...,-1:]], -1)
