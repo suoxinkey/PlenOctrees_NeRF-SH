@@ -111,17 +111,18 @@ class IBRDynamicDataset(torch.utils.data.Dataset):
         frame_id = ((index // self.cam_num) * self.skip_step) %self.frame_num
         cam_id = index % self.cam_num
         
-        img = Image.open(os.path.join(self.file_path,'%d/img_%04d.jpg' % ( frame_id, cam_id)))
+        img = Image.open(os.path.join(self.file_path,'%d/img_%04d.jpg' % ( frame_id, cam_id+1)))
 
         K = self.Ks[cam_id]
 
         if self.use_mask:
-            img_mask = Image.open(os.path.join(self.file_path,'%d/mask/img_%04d.jpg' % ( frame_id, cam_id)))
+            img_mask = Image.open(os.path.join(self.file_path,'%d/mask/img_%04d.jpg' % ( frame_id, cam_id+1)))
 
             img,K,T,img_mask, ROI = self.transforms(img,self.Ks[cam_id],self.Ts[cam_id],img_mask)
             img = torch.cat([img,img_mask[0:1,:,:]], dim=0)
         else:
-            img,_,_,ROI = self.transforms(img)
+            img,K,T,_,ROI = self.transforms(img,self.Ks[cam_id],self.Ts[cam_id])
+            img = torch.cat([img, torch.zeros(img[0:1,:,:].size())], dim=0)
         
         img = torch.cat([img,ROI], dim=0)
 

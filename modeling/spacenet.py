@@ -78,7 +78,7 @@ class SpaceNet(nn.Module):
     density: (N,L,1) or (N,1)
 
     '''
-    def forward(self, pos, rays, maxs, mins):
+    def forward(self, pos, rays, maxs=None, mins=None):
 
 
         #beg = time.time()
@@ -99,8 +99,8 @@ class SpaceNet(nn.Module):
             
            
 
-
-        pos = ((pos - mins)/(maxs-mins) - 0.5)*2
+        if maxs is not None:
+            pos = ((pos - mins)/(maxs-mins) - 0.5)*2
 
         pos = self.tri_kernel_pos(pos)
         if rays is not None:

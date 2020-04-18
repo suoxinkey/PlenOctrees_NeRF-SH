@@ -50,7 +50,7 @@ model = build_model(cfg).cuda()
 
 maxs = torch.max(dataset.bbox[0], dim=0).values.cuda()+0.5
 mins = torch.min(dataset.bbox[0], dim=0).values.cuda()-0.5
-model.set_max_min(maxs,mins)
+#model.set_max_min(maxs,mins)
 
 
 optimizer = make_optimizer(cfg, model)
