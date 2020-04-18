@@ -15,8 +15,8 @@ def vis_density(model, L= 32):
 
     density = torch.nn.functional.relu(density)
     density = density / density.max()
-    xyz = xyz[density.squeeze()<0.7,:]
-    density = density[density.squeeze()<0.7,:].repeat(1,3)
+    xyz = xyz[density.squeeze()>0.3,:]
+    density = density[density.squeeze()>0.3,:].repeat(1,3)
 
     density[:,1:3] = 0
 

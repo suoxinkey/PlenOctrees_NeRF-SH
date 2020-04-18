@@ -17,10 +17,12 @@ def gen_weight(sigma, delta, act_fn=F.relu):
     return weight
 
 class VolumeRenderer(nn.Module):
-    def __init__(self):
+    def __init__(self, use_mask= False):
         super(VolumeRenderer, self).__init__()
 
-    def forward(self, depth, rgb, sigma, noise=0.):
+        self.use_mask = use_mask
+
+    def forward(self, depth, rgb, sigma, noise=0):
         """
         N - num rays; L - num samples; 
         :param depth: torch.tensor, depth for each sample along the ray. [N, L, 1]
@@ -34,17 +36,20 @@ class VolumeRenderer(nn.Module):
 
         delta = (depth[:, 1:] - depth[:, :-1]).squeeze()  # [N, L-1]
         #pad = torch.Tensor([1e10],device=delta.device).expand_as(delta[...,:1])
-        pad = 1e-5*torch.ones(delta[...,:1].size(),device = delta.device)
+        pad = 1e10*torch.ones(delta[...,:1].size(),device = delta.device)
         delta = torch.cat([delta, pad], dim=-1)   # [N, L]
 
         if noise > 0.:
-            sigma += (torch.normal(size=sigma.size()) * noise)
+            sigma += (torch.randn(size=sigma.size(),device = delta.device) * noise)
 
         weights = gen_weight(sigma, delta).unsqueeze(-1)    #[N, L, 1]
 
         color = torch.sum(torch.sigmoid(rgb) * weights, dim=1) #[N, 3]
         depth = torch.sum(weights * depth, dim=1)   # [N, 1]
-        acc_map = torch.sum(weights, dim = 1)
+        acc_map = torch.sum(weights, dim = 1) #
+
+        if self.use_mask:
+            color = color + (1.-acc_map[...,None])
         
         return color, depth, acc_map, weights
     
