@@ -56,6 +56,7 @@ _C.DATASETS.SHIFT = 0.0
 _C.DATASETS.MAXRATION = 0.0
 _C.DATASETS.ROTATION = 0.0
 _C.DATASETS.USE_MASK = False
+_C.DATASETS.NUM_FRAME = 1
 
 # -----------------------------------------------------------------------------
 # DataLoader

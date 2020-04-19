@@ -15,16 +15,18 @@ from utils import ray_sampling
 class IBRay_NHR(torch.utils.data.Dataset):
 
 
-    def __init__(self,data_folder_path,  transforms, bunch = 1024,use_mask = False):
+    def __init__(self,data_folder_path,  transforms, bunch = 1024,use_mask = False, num_frame = 1):
         super(IBRay_NHR, self).__init__()
 
         self.bunch = bunch
 
-        self.NHR_dataset = IBRDynamicDataset(data_folder_path, 1, use_mask, transforms, [1.0, 6.5, 0.8], skip_step = 1, random_noisy = 0, holes='None')
+        self.NHR_dataset = IBRDynamicDataset(data_folder_path, num_frame, use_mask, transforms, [1.0, 6.5, 0.8], skip_step = 1, random_noisy = 0, holes='None')
 
         self.rays = []
         self.rgbs = []
         self.near_fars = []
+        self.frame_ids = []
+
         self.use_mask = use_mask
 
         if not os.path.exists(os.path.join(data_folder_path,'rays_tmp')):
@@ -41,7 +43,8 @@ class IBRay_NHR(torch.utils.data.Dataset):
                 rays,rgbs = ray_sampling(K.unsqueeze(0), T.unsqueeze(0), (img.size(1),img.size(2)), masks = img[4,:,:].unsqueeze(0), mask_threshold = 0.5, images = img_rgb.unsqueeze(0) )
                 self.rays.append(rays)
                 self.rgbs.append(rgbs)
-                self.near_fars.append(near_far.repeat(rays.size(0),1))   # (1,2)
+                self.frame_ids.append(torch.ones(rays.size(0),1)*frame_id)        #(N,1)
+                self.near_fars.append(near_far.repeat(rays.size(0),1))   # (N,2)
                 print(i,'| generate %d rays.'%rays.size(0))
 
 
@@ -50,15 +53,18 @@ class IBRay_NHR(torch.utils.data.Dataset):
             self.rays = torch.cat(self.rays, dim=0)
             self.rgbs = torch.cat(self.rgbs, dim=0)
             self.near_fars = torch.cat(self.near_fars, dim=0)   #(M,2)
+            self.frame_ids = torch.cat(self.frame_ids, dim=0)   
 
 
             torch.save(self.rays, os.path.join(os.path.join(data_folder_path,'rays_tmp'),'rays_0.pt'))
             torch.save(self.rgbs, os.path.join(os.path.join(data_folder_path,'rays_tmp'),'rgb_0.pt'))
             torch.save(self.near_fars, os.path.join(os.path.join(data_folder_path,'rays_tmp'),'near_fars_0.pt'))
+            torch.save(self.frame_ids, os.path.join(os.path.join(data_folder_path,'rays_tmp'),'frameid_0.pt'))
         else:
             self.rays = torch.load(os.path.join(os.path.join(data_folder_path,'rays_tmp'),'rays_0.pt'))
             self.rgbs = torch.load(os.path.join(os.path.join(data_folder_path,'rays_tmp'),'rgb_0.pt'))
             self.near_fars =  torch.load(os.path.join(os.path.join(data_folder_path,'rays_tmp'),'near_fars_0.pt'))
+            self.frame_ids =  torch.load(os.path.join(os.path.join(data_folder_path,'rays_tmp'),'frameid_0.pt'))
             img, self.vs, _, T, K, _,_ = self.NHR_dataset.__getitem__(0)
             print('load %d rays.'%self.rays.size(0))
 
@@ -81,22 +87,34 @@ class IBRay_NHR(torch.utils.data.Dataset):
     def __len__(self):
         return self.rays.size(0)//self.bunch
 
+
+
+    '''
+    output:
+
+    rays: (N,6)
+    rgbs:(N,3)
+    bbox:(N,8,3)
+    near_fars: (N,2)
+    frame_ids: (N,1)
+    '''
+
     def __getitem__(self, index):
 
         indexs = np.random.choice(self.rays.size(0), size=self.bunch)
 
-        return self.rays[indexs,:], self.rgbs[indexs,:], self.bbox.repeat(self.bunch,1,1), self.near_fars[indexs,:]
+        return self.rays[indexs,:], self.rgbs[indexs,:], self.bbox.repeat(self.bunch,1,1), self.near_fars[indexs,:], self.frame_ids[indexs,:]
 
 
 
 class IBRay_NHR_View(torch.utils.data.Dataset):
 
 
-    def __init__(self,data_folder_path,  transforms, use_mask = False):
+    def __init__(self,data_folder_path,  transforms, use_mask = False, num_frame = 1):
         super(IBRay_NHR_View, self).__init__()
 
         self.use_mask = use_mask
-        self.NHR_dataset = IBRDynamicDataset(data_folder_path, 1, use_mask, transforms, [1.0, 6.5, 0.8], skip_step = 1, random_noisy = 0, holes='None')
+        self.NHR_dataset = IBRDynamicDataset(data_folder_path, num_frame, use_mask, transforms, [1.0, 6.5, 0.8], skip_step = 1, random_noisy = 0, holes='None')
 
         
         img, self.vs, _, T, K, _,_ = self.NHR_dataset.__getitem__(0)
@@ -118,7 +136,7 @@ class IBRay_NHR_View(torch.utils.data.Dataset):
 
         index = np.random.randint(0,len(self.NHR_dataset))
 
-        img, self.vs, _, T, K, near_far,_ = self.NHR_dataset.__getitem__(index)
+        img, self.vs, frame_id, T, K, near_far,_ = self.NHR_dataset.__getitem__(index)
 
         img_rgb = img[0:3,:,:]
         if self.use_mask:
@@ -128,5 +146,5 @@ class IBRay_NHR_View(torch.utils.data.Dataset):
 
         rays,rgbs = ray_sampling(K.unsqueeze(0), T.unsqueeze(0), (img.size(1),img.size(2)), images = img_rgb.unsqueeze(0) )
 
-        return rays, rgbs, self.bbox.repeat(rays.size(0),1,1), img_rgb, img[3,:,:].unsqueeze(0), img[4,:,:].unsqueeze(0),near_far.repeat(rays.size(0), 1)
+        return rays, rgbs, self.bbox.repeat(rays.size(0),1,1), img_rgb, img[3,:,:].unsqueeze(0), img[4,:,:].unsqueeze(0),near_far.repeat(rays.size(0), 1), frame_id
 

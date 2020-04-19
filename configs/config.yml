@@ -21,6 +21,7 @@ INPUT:
 
 DATASETS:
   TRAIN: "/data/wmy/NR/dataset/sport_1_small"
+  NUM_FRAME: 1
   SHIFT: 0.0
   MAXRATION: 0.0
   ROTATION: 0.0
