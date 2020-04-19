@@ -28,12 +28,13 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
         optimizer.zero_grad()
         
 
-        rays, rgbs, bboxes,  near_fars = batch
+        rays, rgbs, bboxes,  near_fars, frame_ids = batch
 
         rays = rays[0].cuda()
         rgbs = rgbs[0].cuda()
         bboxes = bboxes[0].cuda()
         near_fars = near_fars[0].cuda()
+        frame_ids = frame_ids[0]
         
         if engine.state.epoch<coarse_stage:
             stage2, stage1 = model( rays, bboxes,True, near_far=near_fars)
@@ -77,7 +78,7 @@ def create_supervised_evaluator(model,  metrics=None, swriter = None):
   
         
 
-        rays, rgbs, bboxes, color, mask, ROI, near_far = batch
+        rays, rgbs, bboxes, color, mask, ROI, near_far,frame_id = batch
 
         rays = rays[0].cuda()
         rgbs = rgbs[0].cuda()
@@ -150,7 +151,7 @@ def evaluator(val_dataset, model, loss_fn, swriter, epoch):
     model.eval()
 
 
-    rays, rgbs, bboxes, color, mask, ROI,near_far = val_dataset.__getitem__(0)
+    rays, rgbs, bboxes, color, mask, ROI,near_far,frame_id = val_dataset.__getitem__(0)
 
     rays = rays.cuda()
     rgbs = rgbs.cuda()
