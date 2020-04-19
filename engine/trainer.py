@@ -271,19 +271,21 @@ def do_train(
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
         iter = (engine.state.iteration - 1) % len(train_loader) + 1
-
+        
         if iter % log_period == 0:
             for param_group in optimizer.param_groups:
                 lr = param_group['lr']
-            logger.info("Epoch[{}] Iteration[{}/{}] Loss: {:.2f} Lr: {:.2e}"
+            logger.info("Epoch[{}] Iteration[{}/{}] Loss: {:.3e} Lr: {:.2e}"
                         .format(engine.state.epoch, iter, len(train_loader), engine.state.metrics['avg_loss'], lr))
         if iter % 1000 == 1:
             val_vis(engine)
 
-
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def adjust_learning_rate(engine):
         scheduler.step()
+
+
+    #@trainer.on(Events.EPOCH_COMPLETED)
+    #def adjust_learning_rate(engine):
+    #    scheduler.step()
 
 
     # adding handlers using `trainer.on` decorator API
