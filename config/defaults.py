@@ -20,6 +20,7 @@ _C.MODEL = CN()
 _C.MODEL.DEVICE = "cuda"
 _C.MODEL.COARSE_RAY_SAMPLING = 64
 _C.MODEL.FINE_RAY_SAMPLING = 80
+_C.MODEL.SAMPLE_METHOD = "NEAR_FAR"
 
 
 
@@ -55,6 +56,7 @@ _C.DATASETS.SHIFT = 0.0
 _C.DATASETS.MAXRATION = 0.0
 _C.DATASETS.ROTATION = 0.0
 _C.DATASETS.USE_MASK = False
+_C.DATASETS.NUM_FRAME = 1
 
 # -----------------------------------------------------------------------------
 # DataLoader

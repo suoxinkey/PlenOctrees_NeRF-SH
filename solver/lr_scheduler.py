@@ -58,7 +58,7 @@ def build_scheduler(optimizer, warmup_epoches, start_epoches, end_epoches, scale
 
     def scheduler(epoch):
         epoch0 = epoch+1.0
-        print('sc',warmup_epoches)
+
         if epoch0<=warmup_epoches:
             return epoch0/warmup_epoches
 

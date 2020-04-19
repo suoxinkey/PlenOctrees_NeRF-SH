@@ -98,7 +98,24 @@ class IBRDynamicDataset(torch.utils.data.Dataset):
         self._all_Ks = None
         self._all_width_height = None
 
-        print('dataset initialed.')
+        inv_Ts = torch.inverse(self.Ts).unsqueeze(1)  #(M,1,4,4)
+        vs = self.vs.clone().unsqueeze(-1)   #(N,3,1)
+        vs = torch.cat([vs,torch.ones(vs.size(0),1,vs.size(2)) ],dim=1) #(N,4,1)
+
+        pts = torch.matmul(inv_Ts,vs) #(M,N,4,1)
+
+        pts_max = torch.max(pts, dim=1)[0].squeeze() #(M,4)
+        pts_min = torch.min(pts, dim=1)[0].squeeze() #(M,4)
+
+        pts_max = pts_max[:,2]   #(M)
+        pts_min = pts_min[:,2]   #(M)
+
+        self.near = pts_min *0.5
+        
+        self.far = pts_max *1.3
+
+        print('dataset initialed. near: %f  far: %f'%(self.near.min(),self.far.max()))
+        
 
 
 
@@ -111,12 +128,12 @@ class IBRDynamicDataset(torch.utils.data.Dataset):
         frame_id = ((index // self.cam_num) * self.skip_step) %self.frame_num
         cam_id = index % self.cam_num
         
-        img = Image.open(os.path.join(self.file_path,'%d/img_%04d.jpg' % ( frame_id, cam_id+1)))
+        img = Image.open(os.path.join(self.file_path,'%d/img_%04d.jpg' % ( frame_id, cam_id)))
 
         K = self.Ks[cam_id]
 
         if self.use_mask:
-            img_mask = Image.open(os.path.join(self.file_path,'%d/mask/img_%04d.jpg' % ( frame_id, cam_id+1)))
+            img_mask = Image.open(os.path.join(self.file_path,'%d/mask/img_%04d.jpg' % ( frame_id, cam_id)))
 
             img,K,T,img_mask, ROI = self.transforms(img,self.Ks[cam_id],self.Ts[cam_id],img_mask)
             img = torch.cat([img,img_mask[0:1,:,:]], dim=0)
@@ -127,7 +144,7 @@ class IBRDynamicDataset(torch.utils.data.Dataset):
         img = torch.cat([img,ROI], dim=0)
 
 
-        return img, self.vs[self.vs_index[frame_id]:self.vs_index[frame_id]+self.vs_num[frame_id],:], index, T, K, self.near_far_size, self.vs_rgb[self.vs_index[frame_id]:self.vs_index[frame_id]+self.vs_num[frame_id],:]
+        return img, self.vs[self.vs_index[frame_id]:self.vs_index[frame_id]+self.vs_num[frame_id],:], frame_id, T, K, torch.tensor([self.near[cam_id],self.far[cam_id]]).unsqueeze(0), self.vs_rgb[self.vs_index[frame_id]:self.vs_index[frame_id]+self.vs_num[frame_id],:]
 
     def get_vertex_num(self):
         return torch.Tensor(self.vs_num)

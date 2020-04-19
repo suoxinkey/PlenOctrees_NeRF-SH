@@ -29,18 +29,29 @@ import random
 torch.cuda.set_device(int(sys.argv[1]))
 
 
+if len(sys.argv)>2:
+    training_folder = sys.argv[2]
+    assert os.path.exists(training_folder), 'training_folder does not exist.'
+    cfg.merge_from_file(os.path.join(training_folder,'configs.yml'))
+    cfg.freeze()
+    output_dir = cfg.OUTPUT_DIR
+    writer = SummaryWriter(log_dir=os.path.join(output_dir,'tensorboard'))
 
-cfg.merge_from_file('../configs/config.yml')
-cfg.freeze()
+else:
+    cfg.merge_from_file('../configs/config.yml')
+    cfg.freeze()
+    output_dir = cfg.OUTPUT_DIR
+    writer = SummaryWriter(log_dir=os.path.join(output_dir,'tensorboard'))
+    shutil.copy('../configs/config.yml', os.path.join(cfg.OUTPUT_DIR,'configs.yml'))
 
 
-output_dir = cfg.OUTPUT_DIR
-writer = SummaryWriter(log_dir=os.path.join(output_dir,'tensorboard'))
+
+
 writer.add_text('OUT_PATH', output_dir,0)
 logger = setup_logger("RFRender", output_dir, 0)
 logger.info("Running with config:\n{}".format(cfg))
 
-shutil.copy('../configs/config.yml', os.path.join(cfg.OUTPUT_DIR,'configs.yml'))
+
 
 
 
@@ -50,7 +61,7 @@ model = build_model(cfg).cuda()
 
 maxs = torch.max(dataset.bbox[0], dim=0).values.cuda()+0.5
 mins = torch.min(dataset.bbox[0], dim=0).values.cuda()-0.5
-#model.set_max_min(maxs,mins)
+model.set_max_min(maxs,mins)
 
 
 optimizer = make_optimizer(cfg, model)

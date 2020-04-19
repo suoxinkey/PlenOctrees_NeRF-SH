@@ -67,6 +67,7 @@ class SpaceNet(nn.Module):
                     nn.Linear(head_dim,3)
                 )
 
+
     '''
     INPUT
     pos: 3D positions (N,L,c_pos) or (N,c_pos)

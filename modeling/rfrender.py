@@ -12,15 +12,18 @@ import time
 
 class RFRender(nn.Module):
 
-    def __init__(self, coarse_ray_sample, fine_ray_sample):
+    def __init__(self, coarse_ray_sample, fine_ray_sample,  sample_method = 'NEAR_FAR'):
         super(RFRender, self).__init__()
 
         self.coarse_ray_sample = coarse_ray_sample
         self.fine_ray_sample = fine_ray_sample
+        self.sample_method = sample_method
 
-
-        self.rsp_coarse = RaySamplePoint_Near_Far(self.coarse_ray_sample)
-        #self.rsp_coarse = RaySamplePoint(self.coarse_ray_sample)
+        #self.rsp_coarse = RaySamplePoint_Near_Far(self.coarse_ray_sample)
+        if self.sample_method == 'NEAR_FAR':
+            self.rsp_coarse = RaySamplePoint_Near_Far(self.coarse_ray_sample)   # use near far to sample points on rays
+        else:
+            self.rsp_coarse = RaySamplePoint(self.coarse_ray_sample)            # use bounding box to define point sampling ranges on rays
 
         self.spacenet = SpaceNet()
         self.spacenet_fine = SpaceNet()
@@ -44,7 +47,7 @@ class RFRender(nn.Module):
     depths:  depth of each ray (N,1) 
 
     '''
-    def forward(self, rays, bboxes, only_coarse = False):
+    def forward(self, rays, bboxes, only_coarse = False,near_far=None):
 
         #if self.maxs is None:
         #    print('please set max_min before use.')
@@ -52,8 +55,12 @@ class RFRender(nn.Module):
 
 
         #beg = time.time()
-        #sampled_rays_coarse_t, sampled_rays_coarse_xyz  = self.rsp_coarse.forward(rays, bboxes)
-        sampled_rays_coarse_t, sampled_rays_coarse_xyz  = self.rsp_coarse.forward(rays)
+        if self.sample_method == 'NEAR_FAR':
+            assert near_far is not None, 'require near_far as input '
+            sampled_rays_coarse_t, sampled_rays_coarse_xyz  = self.rsp_coarse.forward(rays , near_far = near_far)
+        else:
+            sampled_rays_coarse_t, sampled_rays_coarse_xyz  = self.rsp_coarse.forward(rays, bboxes)
+
 
         sampled_rays_coarse_t = sampled_rays_coarse_t.detach()
         sampled_rays_coarse_xyz = sampled_rays_coarse_xyz.detach()
