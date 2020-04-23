@@ -122,6 +122,8 @@ class RFRender(nn.Module):
                     depth_final_0[ray_mask] = depth_0
                     acc_map_final_0 = torch.zeros(rays.size(0),1,device = rays.device)
                     acc_map_final_0[ray_mask] = acc_map_0
+                else:
+                    color_final_0, depth_final_0, acc_map_final_0 = color_0, depth_0, acc_map_0
                 color, depth, acc_map, weights = color_0, depth_0, acc_map_0, weights_0
             #torch.cuda.synchronize()
             #print('render fine:',time.time()-beg)
