@@ -154,7 +154,7 @@ def do_train(
         scheduler,
         loss_fn,
         swriter,
-        resume_epoch = 0
+        resume_iter = 0
 ):
     log_period = cfg.SOLVER.LOG_PERIOD
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
@@ -197,9 +197,9 @@ def do_train(
 
     @trainer.on(Events.STARTED)
     def resume_training(engine):
-        if resume_epoch>0:
-            engine.state.iteration = resume_epoch * len(train_loader)
-            engine.state.epoch = resume_epoch
+        if resume_iter>0:
+            engine.state.iteration = resume_iter
+            engine.state.epoch = resume_iter // len(train_loader)
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):

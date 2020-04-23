@@ -32,11 +32,11 @@ DATASETS:
 MODEL:
   COARSE_RAY_SAMPLING: 64
   FINE_RAY_SAMPLING: 64
-  SAMPLE_METHOD: "NEAR_FAR"       #  "NEAR_FAR"     "BBOX" 
+  SAMPLE_METHOD: "BBOX"       #  "NEAR_FAR"     "BBOX" 
   BOARDER_WEIGHT: 1e10
   SAME_SPACENET: True
 
 TEST:
   IMS_PER_BATCH: 1
 
-OUTPUT_DIR: "/data/wmy/NR/RF_training/xzq_near_far"
+OUTPUT_DIR: "/data/wmy/NR/RF_training/xzq_bbox_single"
