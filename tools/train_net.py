@@ -59,9 +59,9 @@ train_loader, dataset = make_data_loader(cfg, is_train=True)
 val_loader, dataset_val = make_data_loader_view(cfg, is_train=False)
 model = build_model(cfg).cuda()
 
-maxs = torch.max(dataset.bbox[0], dim=0).values.cuda()+3
-mins = torch.min(dataset.bbox[0], dim=0).values.cuda()-3
-model.set_max_min(maxs,mins)
+#maxs = torch.max(dataset.bbox[0], dim=0).values.cuda()+3
+#mins = torch.min(dataset.bbox[0], dim=0).values.cuda()-3
+#model.set_max_min(maxs,mins)
 
 
 optimizer = make_optimizer(cfg, model)

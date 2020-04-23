@@ -32,8 +32,8 @@ def batchify_ray(model, rays, bboxes, chuncks = 1024*7, near_far=None):
             colors[1].append(stage2[0])
             depths[1].append(stage2[1])
             acc_maps[1].append(stage2[2])
-
-            ray_masks.append(ray_mask)
+            if ray_mask is not None:
+                ray_masks.append(ray_mask)
 
         colors[0] = torch.cat(colors[0], dim=0)
         depths[0] = torch.cat(depths[0], dim=0)
@@ -42,7 +42,7 @@ def batchify_ray(model, rays, bboxes, chuncks = 1024*7, near_far=None):
         colors[1] = torch.cat(colors[1], dim=0)
         depths[1] = torch.cat(depths[1], dim=0)
         acc_maps[1] = torch.cat(acc_maps[1], dim=0)
-
-        ray_masks = torch.cat(ray_masks, dim=0)
+        if len(ray_masks)>0:
+            ray_masks = torch.cat(ray_masks, dim=0)
 
         return (colors[1], depths[1], acc_maps[1]), (colors[0], depths[0], acc_maps[0]), ray_masks

@@ -42,13 +42,20 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
             stage2, stage1,ray_mask = model( rays, bboxes,False, near_far = near_fars)
 
         if ray_mask is not None:
+            #print(torch.sum(ray_mask))
             loss1 = loss_fn(stage2[0][ray_mask], rgbs[ray_mask])
             loss2 = loss_fn(stage1[0][ray_mask], rgbs[ray_mask])
         else:
             loss1 = loss_fn(stage2[0], rgbs)
             loss2 = loss_fn(stage1[0], rgbs)
 
+        
         loss = loss1 + loss2
+
+        if engine.state.epoch<coarse_stage:
+            loss = loss1
+        else:
+            loss = loss1 + loss2
 
 
         with amp.scale_loss(loss, optimizer) as scaled_loss:
