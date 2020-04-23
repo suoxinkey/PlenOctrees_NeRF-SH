@@ -71,6 +71,17 @@ optimizer = make_optimizer(cfg, model)
 
 scheduler = build_scheduler(optimizer, cfg.SOLVER.WARMUP_ITERS, cfg.SOLVER.START_ITERS, cfg.SOLVER.END_ITERS, cfg.SOLVER.LR_SCALE)
 
+iter = 0
+if len(sys.argv)>2:
+    iter = int(sys.argv[3])
+    para_file = 'rfnr_model_%d.pth' % iter
+    model.load_state_dict(torch.load(os.path.join(training_folder,para_file),map_location='cpu'))
+    para_file = 'rfnr_optimizer_%d.pth' % iter
+    optimizer.load_state_dict(torch.load(os.path.join(training_folder,para_file),map_location='cpu'))
+    para_file = 'rfnr_scheduler_%d.pth' % iter
+    scheduler.load_state_dict(torch.load(os.path.join(training_folder,para_file),map_location='cpu'))
+
+    logger.info("load checkpoint:{}  iter:{}".format(training_folder,iter))
 
 
 loss_fn = make_loss(cfg)
@@ -85,5 +96,6 @@ do_train(
         optimizer,
         scheduler,
         loss_fn,
-        writer
+        writer,
+        resume_iter = iter
     )
