@@ -35,13 +35,13 @@ if len(sys.argv)>2:
     cfg.merge_from_file(os.path.join(training_folder,'configs.yml'))
     cfg.freeze()
     output_dir = cfg.OUTPUT_DIR
-    writer = SummaryWriter(log_dir=os.path.join(output_dir,'tensorboard'))
+    writer = SummaryWriter(log_dir=output_dir)
 
 else:
     cfg.merge_from_file('../configs/config.yml')
     cfg.freeze()
     output_dir = cfg.OUTPUT_DIR
-    writer = SummaryWriter(log_dir=os.path.join(output_dir,'tensorboard'))
+    writer = SummaryWriter(log_dir=output_dir)
     shutil.copy('../configs/config.yml', os.path.join(cfg.OUTPUT_DIR,'configs.yml'))
 
 
@@ -59,8 +59,8 @@ train_loader, dataset = make_data_loader(cfg, is_train=True)
 val_loader, dataset_val = make_data_loader_view(cfg, is_train=False)
 model = build_model(cfg).cuda()
 
-maxs = torch.max(dataset.bbox[0], dim=0).values.cuda()+0.5
-mins = torch.min(dataset.bbox[0], dim=0).values.cuda()-0.5
+maxs = torch.max(dataset.bbox[0], dim=0).values.cuda()+3
+mins = torch.min(dataset.bbox[0], dim=0).values.cuda()-3
 model.set_max_min(maxs,mins)
 
 

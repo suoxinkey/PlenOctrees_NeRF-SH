@@ -48,7 +48,7 @@ def intersection(rays, bbox):
     up_mask = (up_point[:, 0] >= bbox[:, 4, 0]) & (up_point[:, 0] <= bbox[:, 6, 0]) \
               & (up_point[:, 1] >= bbox[:, 4, 1]) & (up_point[:, 1] <= bbox[:, 6, 1])
 
-    tlist = -torch.ones_like(rays, device=rays.device)
+    tlist = -torch.ones_like(rays, device=rays.device)*1e9
     tlist[left_mask, 0] = left_t[left_mask].reshape((-1,))
     tlist[right_mask, 1] = right_t[right_mask].reshape((-1,))
     tlist[front_mask, 2] = front_t[front_mask].reshape((-1,))
@@ -71,7 +71,7 @@ class RaySamplePoint(nn.Module):
         :param bbox: N*8*3  0,1,2,3 bottom 4,5,6,7 up
         pdf: n*coarse_num 表示权重
         :param method:
-        :return: N*C*3
+        :return: N*C*1  ,  N*C*3,   N
         '''
         n = rays.shape[0]
         #if method=='coarse':
@@ -81,14 +81,15 @@ class RaySamplePoint(nn.Module):
         bin_num = sample_num
         n = rays.shape[0]
         tlist = intersection(rays, bbox)
-        start = (tlist[:,1]).reshape((n,1))
+        start = (tlist[:,1]).reshape((n,1))   
         end = (tlist[:, 0]).reshape((n, 1))
         bin_sample = torch.rand((n, sample_num), device=rays.device)
         bin_width = (end - start)/bin_num
         sample_t = (bin_range + bin_sample)* bin_width + start
         sample_point = sample_t.unsqueeze(-1)*rays[:,:3].unsqueeze(1) + rays[:,3:].unsqueeze(1)
-        
-        return sample_t.unsqueeze(-1), sample_point
+        mask = (torch.abs(bin_width)> 1e-6).squeeze()
+
+        return sample_t.unsqueeze(-1), sample_point, mask
 
 
 class RayDistributedSamplePoint(nn.Module):
