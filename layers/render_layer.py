@@ -17,9 +17,9 @@ def gen_weight(sigma, delta, act_fn=F.relu):
     return weight
 
 class VolumeRenderer(nn.Module):
-    def __init__(self, use_mask= False):
+    def __init__(self, use_mask= False, boarder_weight = 1e10):
         super(VolumeRenderer, self).__init__()
-
+        self.boarder_weight = boarder_weight
         self.use_mask = use_mask
 
     def forward(self, depth, rgb, sigma, noise=0):
@@ -36,7 +36,7 @@ class VolumeRenderer(nn.Module):
 
         delta = (depth[:, 1:] - depth[:, :-1]).squeeze()  # [N, L-1]
         #pad = torch.Tensor([1e10],device=delta.device).expand_as(delta[...,:1])
-        pad = 1e10*torch.ones(delta[...,:1].size(),device = delta.device)
+        pad = self.boarder_weight*torch.ones(delta[...,:1].size(),device = delta.device)
         delta = torch.cat([delta, pad], dim=-1)   # [N, L]
 
         if noise > 0.:

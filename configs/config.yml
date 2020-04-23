@@ -1,7 +1,7 @@
 
 SOLVER:
   OPTIMIZER_NAME: "Adam"
-  BASE_LR: 0.00033
+  BASE_LR: 0.0003
   WEIGHT_DECAY: 0.00000
   IMS_PER_BATCH: 1
   START_ITERS: 2000
@@ -10,7 +10,7 @@ SOLVER:
   WARMUP_ITERS: 1000
 
   MAX_EPOCHS: 300
-  CHECKPOINT_PERIOD: 2
+  CHECKPOINT_PERIOD: 3000
   LOG_PERIOD: 20
   BUNCH: 3000
   COARSE_STAGE: 0
@@ -20,7 +20,8 @@ INPUT:
   SIZE_TEST: [600,400]
 
 DATASETS:
-  TRAIN: "/data/wmy/NR/dataset/sport_1_small"
+  #TRAIN: "/data/wmy/NR/dataset/sport_1_small"
+  TRAIN: "/data/public/share/xzq_dataset_new"
   NUM_FRAME: 1
   SHIFT: 0.0
   MAXRATION: 0.0
@@ -31,9 +32,11 @@ DATASETS:
 MODEL:
   COARSE_RAY_SAMPLING: 64
   FINE_RAY_SAMPLING: 64
-  SAMPLE_METHOD: "NEAR_FAR"       #  "NEAR_FAR"     "BBOX" 
+  SAMPLE_METHOD: "BBOX"       #  "NEAR_FAR"     "BBOX" 
+  BOARDER_WEIGHT: 1e10
+  SAME_SPACENET: False
 
 TEST:
   IMS_PER_BATCH: 1
 
-OUTPUT_DIR: "/data/wmy/NR/RF_training/sport1_near_far"
+OUTPUT_DIR: "/data/wmy/NR/RF_training/xzq_bbox"
