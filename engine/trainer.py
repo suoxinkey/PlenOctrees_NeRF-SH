@@ -37,12 +37,16 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
         frame_ids = frame_ids[0]
         
         if engine.state.epoch<coarse_stage:
-            stage2, stage1 = model( rays, bboxes,True, near_far=near_fars)
+            stage2, stage1,ray_mask = model( rays, bboxes,True, near_far=near_fars)
         else:
-            stage2, stage1 = model( rays, bboxes,False, near_far = near_fars)
+            stage2, stage1,ray_mask = model( rays, bboxes,False, near_far = near_fars)
 
-        loss1 = loss_fn(stage2[0], rgbs)
-        loss2 = loss_fn(stage1[0], rgbs)
+        if ray_mask is not None:
+            loss1 = loss_fn(stage2[0][ray_mask], rgbs[ray_mask])
+            loss2 = loss_fn(stage1[0][ray_mask], rgbs[ray_mask])
+        else:
+            loss1 = loss_fn(stage2[0], rgbs)
+            loss2 = loss_fn(stage1[0], rgbs)
 
         loss = loss1 + loss2
 
@@ -67,85 +71,6 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
 
 
 
-def create_supervised_evaluator(model,  metrics=None, swriter = None):
-
-    metrics = metrics or {}
-
-
-    
-    def _inference(engine, batch,num =0):
-        model.eval()
-  
-        
-
-        rays, rgbs, bboxes, color, mask, ROI, near_far,frame_id = batch
-
-        rays = rays[0].cuda()
-        rgbs = rgbs[0].cuda()
-        bboxes = bboxes[0].cuda()
-        color_gt = color[0].cuda()
-        mask = mask[0].cuda()
-        ROI = ROI[0].cuda()
-        
-        with torch.no_grad():
-
-            stage2, stage1 = batchify_ray(model, rays, bboxes)
-
-            color_1 = stage2[0]
-            depth_1 = stage2[1]
-            acc_map_1 = stage2[2]
-
-
-            color_0 = stage1[0]
-            depth_0 = stage1[1]
-            acc_map_0 = stage1[2]
-
-
-
-
-            color_img = color_1.reshape( (color_gt.size(1), color_gt.size(2), 3) ).permute(2,0,1)
-            depth_img = depth_1.reshape( (color_gt.size(1), color_gt.size(2), 1) ).permute(2,0,1)
-            depth_img = (depth_img-depth_img.min()/2)/(depth_img.max()-depth_img.min()/2)
-            acc_map = acc_map_1.reshape( (color_gt.size(1), color_gt.size(2), 1) ).permute(2,0,1)
-
-
-            color_img_0 = color_0.reshape( (color_gt.size(1), color_gt.size(2), 3) ).permute(2,0,1)
-            depth_img_0 = depth_0.reshape( (color_gt.size(1), color_gt.size(2), 1) ).permute(2,0,1)
-            depth_img_0 = (depth_img_0-depth_img_0.min()/2)/(depth_img_0.max()-depth_img_0.min()/2)
-            acc_map_0 = acc_map_0.reshape( (color_gt.size(1), color_gt.size(2), 1) ).permute(2,0,1)
-
-
-
-            
-            swriter.add_image('GT', color_gt, num)
-
-            swriter.add_image('stage2/rendered', color_img, num)
-            swriter.add_image('stage2/depth', depth_img, num)
-            swriter.add_image('stage2/alpha', acc_map, num)
-
-            swriter.add_image('stage1/rendered', color_img_0, num)
-            swriter.add_image('stage1/depth', depth_img_0, num)
-            swriter.add_image('stage1/alpha', acc_map_0, num)
-
-
-
-            color_img = color_img*((mask*ROI).repeat(3,1,1))
-            color_gt = color_gt*((mask*ROI).repeat(3,1,1))
-
-            num = num + 1
-
-
-            return (color_img, color_gt)
-
-    engine = Engine(_inference)
-    for name, metric in metrics.items():
-        metric.attach(engine, name)
-
-
-
-    return engine
-
-
 
 def evaluator(val_dataset, model, loss_fn, swriter, epoch):
     model.eval()
@@ -163,7 +88,7 @@ def evaluator(val_dataset, model, loss_fn, swriter, epoch):
     
     with torch.no_grad():
 
-        stage2, stage1 = batchify_ray(model, rays, bboxes,near_far = near_far)
+        stage2, stage1,_ = batchify_ray(model, rays, bboxes,near_far = near_far)
 
         color_1 = stage2[0]
         depth_1 = stage2[1]
@@ -229,11 +154,11 @@ def do_train(
     output_dir = cfg.OUTPUT_DIR
     epochs = cfg.SOLVER.MAX_EPOCHS
 
-    logger = logging.getLogger("RFRender.train")
+    logger = logging.getLogger("RFRender.%s.train" % cfg.OUTPUT_DIR.split('/')[-1])
     logger.info("Start training")
     trainer = create_supervised_trainer(model, optimizer, loss_fn, coarse_stage= cfg.SOLVER.COARSE_STAGE,swriter=swriter)
 
-    #evaluator = create_supervised_evaluator(model, metrics={'loss': Loss(loss_fn)}, swriter=swriter)
+
 
 
 
@@ -243,7 +168,7 @@ def do_train(
     checkpointer = ModelCheckpoint(output_dir, 'rfnr', checkpoint_period, n_saved=10, require_empty=False)
     timer = Timer(average=True)
 
-    trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpointer, {'model': model,
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, checkpointer, {'model': model,
                                                                      'optimizer': optimizer,
                                                                      'scheduler':scheduler})
     timer.attach(trainer, start=Events.EPOCH_STARTED, resume=Events.ITERATION_STARTED,
@@ -276,8 +201,8 @@ def do_train(
         if iter % log_period == 0:
             for param_group in optimizer.param_groups:
                 lr = param_group['lr']
-            logger.info("Epoch[{}] Iteration[{}/{}] Loss: {:.3e} Lr: {:.2e}"
-                        .format(engine.state.epoch, iter, len(train_loader), engine.state.metrics['avg_loss'], lr))
+            logger.info("Epoch[{}] Iteration[{}/{}] Loss: {:.3e} Lr: {:.2e} time: {:.3f} s/it"
+                        .format(engine.state.epoch, iter, len(train_loader), engine.state.metrics['avg_loss'], lr,timer.value()))
         if iter % 1000 == 1:
             val_vis(engine)
 

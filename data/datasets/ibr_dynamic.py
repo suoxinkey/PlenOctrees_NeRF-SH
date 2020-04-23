@@ -111,6 +111,7 @@ class IBRDynamicDataset(torch.utils.data.Dataset):
         pts_min = pts_min[:,2]   #(M)
 
         self.near = pts_min *0.5
+        self.near[self.near<(pts_max*0.1)] = pts_max[self.near<(pts_max*0.1)]*0.1
         
         self.far = pts_max *1.3
 

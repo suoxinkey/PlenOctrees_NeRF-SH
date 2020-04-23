@@ -26,6 +26,7 @@ class IBRay_NHR(torch.utils.data.Dataset):
         self.rgbs = []
         self.near_fars = []
         self.frame_ids = []
+        self.vs = []
 
         self.use_mask = use_mask
 
@@ -34,7 +35,10 @@ class IBRay_NHR(torch.utils.data.Dataset):
 
         if not os.path.exists(os.path.join(os.path.join(data_folder_path,'rays_tmp'),'rays_0.pt')):
             for i in range(len(self.NHR_dataset)):
-                img, self.vs, frame_id, T, K, near_far,_ = self.NHR_dataset.__getitem__(i)
+                img, vs, frame_id, T, K, near_far,_ = self.NHR_dataset.__getitem__(i)
+
+                self.vs.append(vs)
+
                 img_rgb = img[0:3,:,:]
                 if self.use_mask:
                     mask = img[4,:,:] *img[3,:,:] 
@@ -49,7 +53,7 @@ class IBRay_NHR(torch.utils.data.Dataset):
 
 
 
-
+            self.vs = torch.cat(self.vs, dim=0)
             self.rays = torch.cat(self.rays, dim=0)
             self.rgbs = torch.cat(self.rgbs, dim=0)
             self.near_fars = torch.cat(self.near_fars, dim=0)   #(M,2)
@@ -69,8 +73,16 @@ class IBRay_NHR(torch.utils.data.Dataset):
             print('load %d rays.'%self.rays.size(0))
 
 
-        max_xyz = torch.max(self.vs, dim=0)[0]+0.5
-        min_xyz = torch.min(self.vs, dim=0)[0]-0.5
+        max_xyz = torch.max(self.vs, dim=0)[0]
+        min_xyz = torch.min(self.vs, dim=0)[0]
+
+        tmp = (max_xyz - min_xyz) * 0.15
+
+        max_xyz = max_xyz + tmp
+        min_xyz = min_xyz - tmp
+
+
+
 
         minx, miny, minz = min_xyz[0],min_xyz[1],min_xyz[2]
         maxx, maxy, maxz = max_xyz[0],max_xyz[1],max_xyz[2]
