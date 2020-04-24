@@ -24,6 +24,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
         model.cuda()
     
     def _update(engine, batch):
+
         model.train()
         optimizer.zero_grad()
         
@@ -35,11 +36,18 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
         bboxes = bboxes[0].cuda()
         near_fars = near_fars[0].cuda()
         frame_ids = frame_ids[0]
+
+        #torch.cuda.synchronize() 
+        #print('begin update.')
         
         if engine.state.epoch<coarse_stage:
             stage2, stage1,ray_mask = model( rays, bboxes,True, near_far=near_fars)
         else:
             stage2, stage1,ray_mask = model( rays, bboxes,False, near_far = near_fars)
+
+
+        #torch.cuda.synchronize() 
+        #print('backward.')
 
         if ray_mask is not None:
             #print(torch.sum(ray_mask))
@@ -58,6 +66,8 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
             loss = loss1 + loss2
 
 
+
+
         with amp.scale_loss(loss, optimizer) as scaled_loss:
             scaled_loss.backward()
 
@@ -69,8 +79,8 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
 
         if iters % 50 ==0:
             swriter.add_scalar('Loss/train_loss',loss.item(), iters)
-
-
+        #torch.cuda.synchronize() 
+        #print('end update.')
         return loss.item()
 
     return Engine(_update)
@@ -142,7 +152,11 @@ def evaluator(val_dataset, model, loss_fn, swriter, epoch):
 
 
 
+def global_step_from_engine(engine):
+    def wrapper(_, event_name=None):
+        return engine.state.iteration
 
+    return wrapper
 
 
 def do_train(
@@ -173,6 +187,8 @@ def do_train(
 
 
     checkpointer = ModelCheckpoint(output_dir, 'rfnr', checkpoint_period, n_saved=10, require_empty=False)
+    checkpointer._iteration = resume_iter
+
     timer = Timer(average=True)
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, checkpointer, {'model': model,
@@ -199,7 +215,7 @@ def do_train(
     def resume_training(engine):
         if resume_iter>0:
             engine.state.iteration = resume_iter
-            engine.state.epoch = resume_iter // len(train_loader)
+            engine.state.epoch = resume_iter // len(train_loader) 
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
