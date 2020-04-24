@@ -48,7 +48,7 @@ def intersection(rays, bbox):
     up_mask = (up_point[:, 0] >= bbox[:, 4, 0]) & (up_point[:, 0] <= bbox[:, 6, 0]) \
               & (up_point[:, 1] >= bbox[:, 4, 1]) & (up_point[:, 1] <= bbox[:, 6, 1])
 
-    tlist = -torch.ones_like(rays, device=rays.device)*1e9
+    tlist = -torch.ones_like(rays, device=rays.device)*1e3
     tlist[left_mask, 0] = left_t[left_mask].reshape((-1,))
     tlist[right_mask, 1] = right_t[right_mask].reshape((-1,))
     tlist[front_mask, 2] = front_t[front_mask].reshape((-1,))
@@ -87,7 +87,7 @@ class RaySamplePoint(nn.Module):
         bin_width = (end - start)/bin_num
         sample_t = (bin_range + bin_sample)* bin_width + start
         sample_point = sample_t.unsqueeze(-1)*rays[:,:3].unsqueeze(1) + rays[:,3:].unsqueeze(1)
-        mask = (torch.abs(bin_width)> 1e-6).squeeze()
+        mask = (torch.abs(bin_width)> 1e-5).squeeze()
 
         return sample_t.unsqueeze(-1), sample_point, mask
 
