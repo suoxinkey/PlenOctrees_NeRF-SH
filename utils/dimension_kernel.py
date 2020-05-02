@@ -33,12 +33,12 @@ class Embedder:
         return torch.cat([fn(inputs) for fn in self.embed_fns], -1)
 
 
-def get_embedder(multires, i=0):
+def get_embedder(multires, i=0,include_input = True):
     if i == -1:
         return nn.Identity(), 3
     
     embed_kwargs = {
-                'include_input' : True,
+                'include_input' : include_input,
                 'input_dims' : 3,
                 'max_freq_log2' : multires-1,
                 'num_freqs' : multires,
@@ -52,11 +52,11 @@ def get_embedder(multires, i=0):
 
 # Positional encoding
 class Trigonometric_kernel:
-    def __init__(self, L = 10):
+    def __init__(self, L = 10, include_input=True):
 
         self.L = L
  
-        self.embed_fn, self.out_ch= get_embedder(L)
+        self.embed_fn, self.out_ch= get_embedder(L,include_input = include_input)
 
     '''
     INPUT
