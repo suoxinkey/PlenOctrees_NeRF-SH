@@ -13,7 +13,7 @@ SOLVER:
   CHECKPOINT_PERIOD: 3000
   LOG_PERIOD: 30
   BUNCH: 3000
-  COARSE_STAGE: 2
+  COARSE_STAGE: 0
 
 INPUT:
   SIZE_TRAIN: [800,600]
@@ -34,9 +34,10 @@ MODEL:
   FINE_RAY_SAMPLING: 64
   SAMPLE_METHOD: "BBOX"       #  "NEAR_FAR"     "BBOX" 
   BOARDER_WEIGHT: 1e10
-  SAME_SPACENET: True
+  SAME_SPACENET: False
+  TKERNEL_INC_RAW: False
 
 TEST:
   IMS_PER_BATCH: 1
 
-OUTPUT_DIR: "/data/wmy/NR/RF_training/xzq_bbox_single"
+OUTPUT_DIR: "/data/wmy/NR/RF_training/xzq_single_nc"
