@@ -76,7 +76,7 @@ class IBRay_NHR(torch.utils.data.Dataset):
         max_xyz = torch.max(self.vs, dim=0)[0]
         min_xyz = torch.min(self.vs, dim=0)[0]
 
-        tmp = (max_xyz - min_xyz) * 0.15
+        tmp = (max_xyz - min_xyz) * 0.3
 
         max_xyz = max_xyz + tmp
         min_xyz = min_xyz - tmp

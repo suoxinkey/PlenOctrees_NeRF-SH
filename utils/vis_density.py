@@ -1,3 +1,5 @@
+import torch
+
 def vis_density(model,bbox, L= 32):
 
     maxs = torch.max(bbox, dim=0).values
@@ -24,4 +26,4 @@ def vis_density(model,bbox, L= 32):
 
     sigmas = torch.cat(sigmas, dim=0)
 
-    return sigmas,xyz
+    return sigmas
