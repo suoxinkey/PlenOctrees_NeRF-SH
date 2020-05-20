@@ -38,6 +38,9 @@ class IBRDynamicDataset(torch.utils.data.Dataset):
         sum_tmp = 0
         for i in range(frame_num):
             #tmp = np.loadtxt(os.path.join(data_folder_path,'pointclouds/frame%d.obj' % (i+1)), usecols = (1,2,3,4,5,6))
+            if not os.path.exists(os.path.join(data_folder_path,'pointclouds/frame%d.npy' % (i+1))):
+                break
+
             tmp = np.load(os.path.join(data_folder_path,'pointclouds/frame%d.npy' % (i+1)))
 
             if os.path.exists(os.path.join(self.holes,'holes/frame%d.npy' % (i+1))):
@@ -59,8 +62,9 @@ class IBRDynamicDataset(torch.utils.data.Dataset):
                 print(i,'/',frame_num)
 
 
-        self.vs = torch.cat( self.vs, dim=0 )
-        self.vs_rgb = torch.cat( self.vs_rgb, dim=0 )
+        if len(self.vs)>0:
+            self.vs = torch.cat( self.vs, dim=0 )
+            self.vs_rgb = torch.cat( self.vs_rgb, dim=0 )
 
         if random_noisy>0:
             n = tdist.Normal(torch.tensor([0.0, 0.0,0.0]), torch.tensor([random_noisy,random_noisy,random_noisy]))
@@ -89,6 +93,14 @@ class IBRDynamicDataset(torch.utils.data.Dataset):
         self.near_far_size = torch.Tensor(near_far_size)
 
         #self.black_list = [625,747,745,738,62,750,746,737,739,762]
+
+        if type(self.vs)==list:
+            self.vs = self.Ts[:,0:3,3]
+            self.vs_rgb = torch.zeros_like(self.vs)
+            self.vs_num.append(self.vs.size(0))
+            self.vs_index.append(0)
+
+
 
         print('load %d Ts, %d Ks, %d frame, %d vertices' % (self.Ts.size(0),self.Ks.size(0),self.frame_num,self.vs.size(0)))
 
