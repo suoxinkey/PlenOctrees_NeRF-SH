@@ -50,19 +50,11 @@ class SpaceNet(nn.Module):
 
         self.density_net = nn.Sequential(
                     nn.ReLU(inplace=True),
-                    nn.Linear(backbone_dim, head_dim),
-                    nn.ReLU(inplace=True),
-                    nn.Linear(head_dim,1)
+                    nn.Linear(backbone_dim, 1)
                 )
         self.rgb_net = nn.Sequential(
                     nn.ReLU(inplace=True),
                     nn.Linear(backbone_dim+self.dir_dim, head_dim),
-                    nn.ReLU(inplace=True),
-                    nn.Linear(head_dim,head_dim),
-                    nn.ReLU(inplace=True),
-                    nn.Linear(head_dim,head_dim),
-                    nn.ReLU(inplace=True),
-                    nn.Linear(head_dim,head_dim),
                     nn.ReLU(inplace=True),
                     nn.Linear(head_dim,3)
                 )
