@@ -13,12 +13,12 @@ from utils import Trigonometric_kernel
 class SpaceNet(nn.Module):
 
 
-    def __init__(self, c_pos=3):
+    def __init__(self, c_pos=3, include_input = True):
         super(SpaceNet, self).__init__()
 
 
-        self.tri_kernel_pos = Trigonometric_kernel(L=10)
-        self.tri_kernel_dir = Trigonometric_kernel(L=4)
+        self.tri_kernel_pos = Trigonometric_kernel(L=10,include_input = include_input)
+        self.tri_kernel_dir = Trigonometric_kernel(L=4, include_input = include_input)
 
         self.c_pos = c_pos
 
@@ -50,19 +50,11 @@ class SpaceNet(nn.Module):
 
         self.density_net = nn.Sequential(
                     nn.ReLU(inplace=True),
-                    nn.Linear(backbone_dim, head_dim),
-                    nn.ReLU(inplace=True),
-                    nn.Linear(head_dim,1)
+                    nn.Linear(backbone_dim, 1)
                 )
         self.rgb_net = nn.Sequential(
                     nn.ReLU(inplace=True),
                     nn.Linear(backbone_dim+self.dir_dim, head_dim),
-                    nn.ReLU(inplace=True),
-                    nn.Linear(head_dim,head_dim),
-                    nn.ReLU(inplace=True),
-                    nn.Linear(head_dim,head_dim),
-                    nn.ReLU(inplace=True),
-                    nn.Linear(head_dim,head_dim),
                     nn.ReLU(inplace=True),
                     nn.Linear(head_dim,3)
                 )

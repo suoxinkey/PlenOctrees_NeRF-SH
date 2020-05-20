@@ -67,7 +67,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
 
 
 
-
+        
         with amp.scale_loss(loss, optimizer) as scaled_loss:
             scaled_loss.backward()
 
@@ -224,8 +224,8 @@ def do_train(
         if iter % log_period == 0:
             for param_group in optimizer.param_groups:
                 lr = param_group['lr']
-            logger.info("Epoch[{}] Iteration[{}/{}] Loss: {:.3e} Lr: {:.2e} time: {:.3f} s/it"
-                        .format(engine.state.epoch, iter, len(train_loader), engine.state.metrics['avg_loss'], lr,timer.value()))
+            logger.info("Epoch[{}] Iteration[{}/{}] Loss: {:.3e} Lr: {:.2e} Speed: {:.1f}[rays/s]"
+                        .format(engine.state.epoch, iter, len(train_loader), engine.state.metrics['avg_loss'], lr,float(cfg.SOLVER.BUNCH) / timer.value()))
         if iter % 1000 == 1:
             val_vis(engine)
 

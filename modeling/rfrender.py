@@ -12,7 +12,7 @@ import time
 
 class RFRender(nn.Module):
 
-    def __init__(self, coarse_ray_sample, fine_ray_sample, boarder_weight, sample_method = 'NEAR_FAR', same_space_net = False):
+    def __init__(self, coarse_ray_sample, fine_ray_sample, boarder_weight, sample_method = 'NEAR_FAR', same_space_net = False, TriKernel_include_input = True):
         super(RFRender, self).__init__()
 
         self.coarse_ray_sample = coarse_ray_sample
@@ -25,11 +25,11 @@ class RFRender(nn.Module):
         else:
             self.rsp_coarse = RaySamplePoint(self.coarse_ray_sample)            # use bounding box to define point sampling ranges on rays
 
-        self.spacenet = SpaceNet()
+        self.spacenet = SpaceNet(include_input = TriKernel_include_input)
         if same_space_net:
             self.spacenet_fine = self.spacenet
         else:
-            self.spacenet_fine = SpaceNet()
+            self.spacenet_fine = SpaceNet(include_input = TriKernel_include_input)
 
         self.volume_render = VolumeRenderer(boarder_weight = boarder_weight)
 
@@ -69,7 +69,7 @@ class RFRender(nn.Module):
             rays_t = rays[ray_mask].detach()
 
 
-        if rays_t.size(0) > 0:
+        if rays_t.size(0) > 1:
 
 
             sampled_rays_coarse_t = sampled_rays_coarse_t.detach()
@@ -77,6 +77,8 @@ class RFRender(nn.Module):
 
             
             rgbs, density = self.spacenet(sampled_rays_coarse_xyz, rays_t, self.maxs, self.mins)
+
+            density[sampled_rays_coarse_t[:,:,0]<0,:] = 0.0
             color_0, depth_0, acc_map_0, weights_0 = self.volume_render(sampled_rays_coarse_t, rgbs, density)
 
             #torch.cuda.synchronize()
@@ -140,9 +142,9 @@ class RFRender(nn.Module):
                 acc_map_final = torch.zeros(rays.size(0),1,device = rays.device)
                 acc_map_final[ray_mask] = acc_map
         else:
-            color_final_0 = torch.zeros(rays.size(0),3,device = rays.device)
-            depth_final_0 = torch.zeros(rays.size(0),1,device = rays.device)
-            acc_map_final_0 = torch.zeros(rays.size(0),1,device = rays.device)
+            color_final_0 = torch.zeros(rays.size(0),3,device = rays.device).requires_grad_()
+            depth_final_0 = torch.zeros(rays.size(0),1,device = rays.device).requires_grad_()
+            acc_map_final_0 = torch.zeros(rays.size(0),1,device = rays.device).requires_grad_()
             color_final, depth_final, acc_map_final = color_final_0, depth_final_0, acc_map_final_0
 
 
