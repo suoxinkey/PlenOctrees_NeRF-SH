@@ -25,8 +25,8 @@ _C.MODEL.BOARDER_WEIGHT = 1e10
 _C.MODEL.SAME_SPACENET = False
 
 _C.MODEL.TKERNEL_INC_RAW = True
-
-
+_C.MODEL.USE_SH = True
+_C.MODEL.DEVICE_IDS=[1, 2]
 
 
 # -----------------------------------------------------------------------------

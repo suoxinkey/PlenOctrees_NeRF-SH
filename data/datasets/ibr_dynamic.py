@@ -126,7 +126,8 @@ class IBRDynamicDataset(torch.utils.data.Dataset):
         self.near[self.near<(pts_max*0.1)] = pts_max[self.near<(pts_max*0.1)]*0.1
         
         self.far = pts_max *2
-
+        self.near = 2.0 * np.ones_like(self.near)
+        self.far = 6.0 * np.ones_like(self.near)
         print('dataset initialed. near: %f  far: %f'%(self.near.min(),self.far.max()))
         
 

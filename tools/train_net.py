@@ -71,6 +71,13 @@ optimizer = make_optimizer(cfg, model)
 
 scheduler = build_scheduler(optimizer, cfg.SOLVER.WARMUP_ITERS, cfg.SOLVER.START_ITERS, cfg.SOLVER.END_ITERS, cfg.SOLVER.LR_SCALE)
 
+if(len(cfg.MODEL.DEVICE_IDS)>1):
+    torch.cuda.set_device(cfg.MODEL.DEVICE_IDS[0])
+    model = torch.nn.DataParallel(model, device_ids=cfg.MODEL.DEVICE_IDS)
+else:
+    torch.cuda.set_device(cfg.MODEL.DEVICE_IDS[0])
+
+
 iter = 0
 if len(sys.argv)>2:
     iter = int(sys.argv[3])
@@ -86,7 +93,7 @@ if len(sys.argv)>2:
 
 loss_fn = make_loss(cfg)
 
-model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
+# model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
 
 do_train(
         cfg,

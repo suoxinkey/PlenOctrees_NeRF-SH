@@ -13,6 +13,8 @@ def batchify_ray(model, rays, bboxes, chuncks = 1024*7, near_far=None):
         else:
             bboxes = [None]*len(rays)
         if near_far is not None:
+            if(near_far.shape[0]!=N):
+                near_far = near_far.repeat((N, 1))
             near_far = near_far.split(chuncks, dim=0)
         else:
             near_far = [None]*len(rays)
@@ -40,9 +42,10 @@ def batchify_ray(model, rays, bboxes, chuncks = 1024*7, near_far=None):
         acc_maps[0] = torch.cat(acc_maps[0], dim=0)
 
         colors[1] = torch.cat(colors[1], dim=0)
+        print('colors[1] ', colors[1].shape)
         depths[1] = torch.cat(depths[1], dim=0)
         acc_maps[1] = torch.cat(acc_maps[1], dim=0)
         if len(ray_masks)>0:
             ray_masks = torch.cat(ray_masks, dim=0)
-
+        
         return (colors[1], depths[1], acc_maps[1]), (colors[0], depths[0], acc_maps[0]), ray_masks

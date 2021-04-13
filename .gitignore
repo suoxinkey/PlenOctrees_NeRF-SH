@@ -4,4 +4,6 @@ __pycache__
 .idea
 .pypirc
 dist
+.npz
+.obj
 torchlib.egg-info

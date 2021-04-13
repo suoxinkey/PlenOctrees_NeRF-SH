@@ -44,6 +44,7 @@ def ray_sampling(Ks, Ts, image_size, masks=None, mask_threshold = 0.5, images=No
 
     dirs = torch.matmul(Ts,dirs) #(M,H,W,4,1)
     dirs = dirs[:,:,:,0:3,0]  #(M,H,W,3)
+    
 
     pos = Ts[:,0:3,3] #(M,3)
     pos = pos.unsqueeze(1).unsqueeze(1).repeat(1,h,w,1)

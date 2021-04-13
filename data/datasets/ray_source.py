@@ -15,7 +15,7 @@ from utils import ray_sampling
 class IBRay_NHR(torch.utils.data.Dataset):
 
 
-    def __init__(self,data_folder_path,  transforms, bunch = 1024,use_mask = False, num_frame = 1):
+    def __init__(self,data_folder_path,  transforms, bunch = 1024,use_mask = False, num_frame = 1, use_batch = False):
         super(IBRay_NHR, self).__init__()
 
         self.bunch = bunch
@@ -29,6 +29,7 @@ class IBRay_NHR(torch.utils.data.Dataset):
         self.vs = []
 
         self.use_mask = use_mask
+        self.use_batch = use_batch
 
         if not os.path.exists(os.path.join(data_folder_path,'rays_tmp')):
             os.mkdir(os.path.join(data_folder_path,'rays_tmp'))
@@ -66,6 +67,7 @@ class IBRay_NHR(torch.utils.data.Dataset):
             torch.save(self.frame_ids, os.path.join(os.path.join(data_folder_path,'rays_tmp'),'frameid_0.pt'))
         else:
             self.rays = torch.load(os.path.join(os.path.join(data_folder_path,'rays_tmp'),'rays_0.pt'))
+            # self.rays[:,:3] = self.rays[:,:3]/torch.norm(self.rays[:,:3],dim=1,keepdim = True)
             self.rgbs = torch.load(os.path.join(os.path.join(data_folder_path,'rays_tmp'),'rgb_0.pt'))
             self.near_fars =  torch.load(os.path.join(os.path.join(data_folder_path,'rays_tmp'),'near_fars_0.pt'))
             self.frame_ids =  torch.load(os.path.join(os.path.join(data_folder_path,'rays_tmp'),'frameid_0.pt'))
@@ -112,12 +114,18 @@ class IBRay_NHR(torch.utils.data.Dataset):
     '''
 
     def __getitem__(self, index):
-
-        indexs = np.random.choice(self.rays.size(0), size=self.bunch)
-
-        return self.rays[indexs,:], self.rgbs[indexs,:], self.bbox.repeat(self.bunch,1,1), self.near_fars[indexs,:], self.frame_ids[indexs,:]
-
-
+        
+        if self.use_batch:
+            indexs = np.random.choice(self.rays.size(0), size=self.bunch)
+            return self.rays[indexs,:], self.rgbs[indexs,:], self.bbox.repeat(self.bunch,1,1), self.near_fars[indexs,:], self.frame_ids[indexs,:]
+        else:
+            image_length = len(self.NHR_dataset)
+            image_index = np.random.choice(image_length)
+            bunch_size = int(self.rays.shape[0]//image_length)
+            indexs = np.random.choice(bunch_size, size=self.bunch)
+            indexs = image_index*bunch_size + indexs
+            return self.rays[indexs,:], self.rgbs[indexs,:], self.bbox.repeat(self.bunch,1,1), self.near_fars[indexs,:], self.frame_ids[indexs,:]
+        
 
 class IBRay_NHR_View(torch.utils.data.Dataset):
 
@@ -157,6 +165,8 @@ class IBRay_NHR_View(torch.utils.data.Dataset):
 
 
         rays,rgbs = ray_sampling(K.unsqueeze(0), T.unsqueeze(0), (img.size(1),img.size(2)), images = img_rgb.unsqueeze(0) )
+        
+        # rays[:,:3] = rays[:,:3]/torch.norm(rays[:,:3],dim=1,keepdim = True)
 
         return rays, rgbs, self.bbox.repeat(rays.size(0),1,1), img_rgb, img[3,:,:].unsqueeze(0), img[4,:,:].unsqueeze(0),near_far.repeat(rays.size(0), 1), frame_id
 

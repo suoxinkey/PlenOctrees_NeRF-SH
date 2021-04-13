@@ -18,6 +18,9 @@ import numpy as np
 import os
 
 
+img2mse = lambda x, y : torch.mean((x - y) ** 2)
+mse2psnr = lambda x : -10. * torch.log(x) / torch.log(torch.Tensor([10.]).cuda())
+
 def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_stage = 0,swriter = None):
 
     if use_cuda:
@@ -30,24 +33,19 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
         
 
         rays, rgbs, bboxes,  near_fars, frame_ids = batch
-
+        
         rays = rays[0].cuda()
         rgbs = rgbs[0].cuda()
         bboxes = bboxes[0].cuda()
         near_fars = near_fars[0].cuda()
         frame_ids = frame_ids[0]
-
-        #torch.cuda.synchronize() 
-        #print('begin update.')
+        
         
         if engine.state.epoch<coarse_stage:
             stage2, stage1,ray_mask = model( rays, bboxes,True, near_far=near_fars)
         else:
             stage2, stage1,ray_mask = model( rays, bboxes,False, near_far = near_fars)
 
-
-        #torch.cuda.synchronize() 
-        #print('backward.')
 
         if ray_mask is not None:
             #print(torch.sum(ray_mask))
@@ -57,6 +55,8 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
             loss1 = loss_fn(stage2[0], rgbs)
             loss2 = loss_fn(stage1[0], rgbs)
 
+            psnr1 = mse2psnr(img2mse(stage1[0], rgbs))
+            psnr2 = mse2psnr(img2mse(stage2[0], rgbs))
         
         loss = loss1 + loss2
 
@@ -66,12 +66,11 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
             loss = loss1 + loss2
 
 
-
         
-        with amp.scale_loss(loss, optimizer) as scaled_loss:
-            scaled_loss.backward()
+        # with amp.scale_loss(loss, optimizer) as scaled_loss:
+        #     scaled_loss.backward()
 
-        #loss.backward()
+        loss.backward()
 
         optimizer.step()
 
@@ -79,8 +78,9 @@ def create_supervised_trainer(model, optimizer, loss_fn, use_cuda=True, coarse_s
 
         if iters % 50 ==0:
             swriter.add_scalar('Loss/train_loss',loss.item(), iters)
-        #torch.cuda.synchronize() 
-        #print('end update.')
+            swriter.add_scalar('Loss/psnr2', psnr2.item(), iters)
+            swriter.add_scalar('Loss/psnr1', psnr1.item(), iters)
+
         return loss.item()
 
     return Engine(_update)
@@ -136,6 +136,7 @@ def evaluator(val_dataset, model, loss_fn, swriter, epoch):
         swriter.add_image('GT', color_gt, epoch)
 
         swriter.add_image('stage2/rendered', color_img, epoch)
+
         swriter.add_image('stage2/depth', depth_img, epoch)
         swriter.add_image('stage2/alpha', acc_map, epoch)
 
@@ -182,16 +183,12 @@ def do_train(
 
 
 
-
-
-
-
-    checkpointer = ModelCheckpoint(output_dir, 'rfnr', checkpoint_period, n_saved=10, require_empty=False)
+    checkpointer = ModelCheckpoint(output_dir, 'rfnr', n_saved=10, require_empty=False)
     checkpointer._iteration = resume_iter
 
     timer = Timer(average=True)
 
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, checkpointer, {'model': model,
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpointer, {'model': model,
                                                                      'optimizer': optimizer,
                                                                      'scheduler':scheduler})
     timer.attach(trainer, start=Events.EPOCH_STARTED, resume=Events.ITERATION_STARTED,
@@ -200,7 +197,7 @@ def do_train(
     RunningAverage(output_transform=lambda x: x).attach(trainer, 'avg_loss')
 
     def val_vis(engine):
-        avg_loss = evaluator(val_loader, model, loss_fn, swriter,engine.state.epoch)
+        avg_loss = evaluator(val_loader, model, loss_fn, swriter,engine.state.iteration)
         logger.info("Validation Results - Epoch: {} Avg Loss: {:.3f}"
                     .format(engine.state.epoch,  avg_loss)
                     )

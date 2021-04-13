@@ -27,18 +27,21 @@ RGB:  (N,C)
 
 
 
-def render(model, K,T,img_size,ROI = None, bboxes = None,only_coarse = False,near_far=None):
+def render(model, K, T, img_size,ROI = None, bboxes = None,only_coarse = False,near_far=None):
     model.eval()
     assert not (bboxes is None and near_far is None), ' either bbox or near_far should not be None.'
     mask = torch.ones(img_size[0],img_size[1])
     if ROI is not None:
         mask = torch.zeros(img_size[0],img_size[1])
         mask[ROI[0]:ROI[0]+ROI[2], ROI[1]:ROI[1]+ROI[3]] = 1.0
+        
     rays,_ = ray_sampling(K.unsqueeze(0), T.unsqueeze(0), img_size, masks=mask.unsqueeze(0))
 
+    
     if bboxes is not None:
         bboxes = bboxes.unsqueeze(0).repeat(rays.size(0),1,1)
-
+    
+    print('near_far ', near_far)
     with torch.no_grad():
         stage2, stage1,_ = batchify_ray(model, rays, bboxes,near_far = near_far)
 

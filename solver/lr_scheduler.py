@@ -59,12 +59,14 @@ def build_scheduler(optimizer, warmup_epoches, start_epoches, end_epoches, scale
     def scheduler(epoch):
         epoch0 = epoch+1.0
 
-        if epoch0<=warmup_epoches:
-            return epoch0/warmup_epoches
+        # if epoch0<=warmup_epoches:
+        #     return epoch0/warmup_epoches
 
-        if epoch0>=start_epoches:
-            return (1.0-scale)*math.exp(-(epoch0-start_epoches)/(end_epoches-start_epoches)) + scale
-
-
-        return 1.0
-    return  torch.optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=[scheduler]*len(optimizer.param_groups))
+        # if epoch0>=start_epoches:
+        #     return (1.0-scale)*math.exp(-(epoch0-start_epoches)/(end_epoches-start_epoches)) + scale
+        decay_rate = 0.1
+        decay_steps = 250 * 1000
+        new_lrate = (decay_rate ** (epoch0 / decay_steps))
+        # print('new_lrate ', new_lrate)
+        return new_lrate
+    return  torch.optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=scheduler)

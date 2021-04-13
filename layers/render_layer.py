@@ -9,11 +9,7 @@ def gen_weight(sigma, delta, act_fn=F.relu):
     """Generate transmittance from predicted density
     """
     alpha = 1.-torch.exp(-act_fn(sigma.squeeze(-1))*delta)
-    weight = 1.-alpha+1e-10
-    #weight = alpha * torch.cumprod(weight, dim=-1) / weight # exclusive cum_prod
-
-    weight = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1),device = alpha.device), weight], -1), -1)[:, :-1]
-
+    weight = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1),device = alpha.device), 1.-alpha+1e-10], -1), -1)[:, :-1]
     return weight
 
 class VolumeRenderer(nn.Module):
@@ -43,14 +39,13 @@ class VolumeRenderer(nn.Module):
             sigma += (torch.randn(size=sigma.size(),device = delta.device) * noise)
 
         weights = gen_weight(sigma, delta).unsqueeze(-1)    #[N, L, 1]
-
+        
         color = torch.sum(torch.sigmoid(rgb) * weights, dim=1) #[N, 3]
         depth = torch.sum(weights * depth, dim=1)   # [N, 1]
         acc_map = torch.sum(weights, dim = 1) #
-
         if self.use_mask:
-            color = color + (1.-acc_map[...,None])
-        
+            color = color + (1.-acc_map)
+
         return color, depth, acc_map, weights
     
     
