@@ -9,7 +9,7 @@ To train the code:
     
 cd tools && python train_net.py <gpu id>     
 ```
-And you can run the tools/PlenOctrees.ipynb to generate the .npz file which can run the run the [C++ renderer](https://github.com/sxyu/volrend) by the [PlenOctrees for Real-time Rendering of Neural Radiance Fields](https://alexyu.net/plenoctrees/#demo-section). 
+And you can run the tools/PlenOctrees.ipynb to generate the .npz file which can run the [C++ renderer](https://github.com/sxyu/volrend) by the [PlenOctrees for Real-time Rendering of Neural Radiance Fields](https://alexyu.net/plenoctrees/#demo-section). 
 
 # Requirements
 - [yacs](https://github.com/rbgirshick/yacs) (Yet Another Configuration System)
