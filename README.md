@@ -1,6 +1,6 @@
 
 # PlenOctrees_NeRF-SH
-This is an implementation of the Paper [PlenOctrees for Real-time Rendering of Neural Radiance Fields](https://alexyu.net/plenoctrees/#demo-section). Not only the code provides the implementation of the NeRF-SH，but also provides the conversion code from NeRF-SH to PlenOctree. You can use the code to generate the .npz file so as to run the [C++ renderer](https://github.com/sxyu/volrend) by the [PlenOctrees for Real-time Rendering of Neural Radiance Fields](https://alexyu.net/plenoctrees/#demo-section). And the conversion code is in the tools/PlenOctrees.ipynb. The results by our code is shown in the ![Screenshot](https://github.com/suoxinkey/PlenOctrees_NeRF-SH/blob/main/img/PlenOctree.PNG).
+This is an implementation of the Paper [PlenOctrees for Real-time Rendering of Neural Radiance Fields](https://alexyu.net/plenoctrees/#demo-section). Not only the code provides the implementation of the NeRF-SH，but also provides the conversion code from NeRF-SH to PlenOctree. You can use the code to generate the .npz file so as to run the [C++ renderer](https://github.com/sxyu/volrend) by the [PlenOctrees for Real-time Rendering of Neural Radiance Fields](https://alexyu.net/plenoctrees/#demo-section). And the conversion code is in the tools/PlenOctrees.ipynb. The results by our code is shown in the ![Screenshot](https://github.com/suoxinkey/PlenOctrees_NeRF-SH/blob/main/img/PlenOctree.PNG)
 But before using the code, you must train the NeRF-SH model. If you don't want to train the model, please concat the mail:suoxin@shanghaitech.edu.cn.
 
 
