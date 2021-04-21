@@ -140,8 +140,7 @@ class RFRender(nn.Module):
             color_final, depth_final, acc_map_final = color_final_0, depth_final_0, acc_map_final_0
 
 
-        return (color_final, depth_final, acc_map_final) , (color_final_0, depth_final_0, acc_map_final_0), ray_mask, coarse_density, fine_density, sampled_rays_coarse_xyz, samples_fine_xyz, z_vals, z_samples
-
+        return (color_final, depth_final, acc_map_final) , (color_final_0, depth_final_0, acc_map_final_0), ray_mask
 
     def set_max_min(self, maxs, mins):
         self.maxs = maxs
